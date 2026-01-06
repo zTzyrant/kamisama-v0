@@ -39,6 +39,11 @@ export default function Nav() {
             </A>
           </li>
           <li>
+            <A href="/blog" class="hover:text-primary transition-colors">
+              Blog
+            </A>
+          </li>
+          <li>
             <A href="/contact" class="hover:text-primary transition-colors">
               Contact
             </A>
@@ -57,11 +62,10 @@ export default function Nav() {
 
       {/* Mobile Overlay */}
       <div
-        class={`fixed inset-0 z-40 bg-black flex flex-col items-center justify-center transition-all duration-500 ease-in-out ${
-          isOpen()
-            ? "opacity-100 pointer-events-auto translate-y-0"
-            : "opacity-0 pointer-events-none -translate-y-full"
-        }`}
+        class={`fixed inset-0 z-40 bg-black flex flex-col items-center justify-center transition-all duration-500 ease-in-out ${isOpen()
+          ? "opacity-100 pointer-events-auto translate-y-0"
+          : "opacity-0 pointer-events-none -translate-y-full"
+          }`}
       >
         <nav class="flex flex-col gap-8 text-center">
           <A
@@ -77,6 +81,13 @@ export default function Nav() {
             class="text-4xl font-oswald uppercase text-white hover:text-primary transition-colors transform hover:scale-105 duration-300"
           >
             Studio
+          </A>
+          <A
+            href="/blog"
+            onClick={toggle}
+            class="text-4xl font-oswald uppercase text-white hover:text-primary transition-colors transform hover:scale-105 duration-300"
+          >
+            Blog
           </A>
           <A
             href="/contact"

@@ -26,12 +26,17 @@ export default function App() {
         rel="stylesheet"
       />
       <Router
-        root={(props) => (
-          <>
-            <Nav />
-            <Suspense>{props.children}</Suspense>
-          </>
-        )}
+        root={(props) => {
+          const location = props.location;
+          const isBlog = () => location.pathname.startsWith("/blog");
+
+          return (
+            <>
+              {!isBlog() && <Nav />}
+              <Suspense>{props.children}</Suspense>
+            </>
+          );
+        }}
       >
         <FileRoutes />
       </Router>
