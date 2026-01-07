@@ -2,7 +2,14 @@ import { createSignal, createEffect } from 'solid-js';
 
 export type Theme = 'dark' | 'light' | 'rebel';
 
-const [theme, setTheme] = createSignal<Theme>('dark');
+const getStoredTheme = (): Theme | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('theme') as Theme;
+  }
+  return null;
+};
+
+const [theme, setTheme] = createSignal<Theme>((getStoredTheme() as Theme) || 'dark');
 
 export const currentTheme = theme;
 
@@ -13,11 +20,10 @@ export const cycleTheme = () => {
 };
 
 export const initTheme = () => {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('theme') as Theme;
-    if (saved && ['dark', 'light', 'rebel'].includes(saved)) {
-      setTheme(saved);
-    }
+  // Can be used to force re-sync if needed, but signal init handles the main case.
+  const saved = getStoredTheme();
+  if (saved && ['dark', 'light', 'rebel'].includes(saved)) {
+    setTheme(saved);
   }
 };
 

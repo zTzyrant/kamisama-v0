@@ -1,4 +1,4 @@
-import { createMemo, Show, For } from 'solid-js';
+import { createMemo, Show, For, createEffect, createSignal } from 'solid-js';
 import { useParams, A } from '@solidjs/router';
 import { Title } from '@solidjs/meta';
 import { blogPosts } from '~/lib/blog-data';
@@ -6,10 +6,57 @@ import Button from '~/components/ui/Button';
 import { ArrowLeft, Share2, Clock, MessageSquare, Heart } from 'lucide-solid';
 import BlogHeader from '~/components/BlogHeader';
 import BlogFooter from '~/components/BlogFooter';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
+marked.setOptions({
+  breaks: true,
+  gfm: true
+});
 
 export default function BlogDetail() {
   const params = useParams();
   const post = createMemo(() => blogPosts.find((p) => p.slug === params.slug));
+  const [htmlContent, setHtmlContent] = createSignal("");
+
+  createEffect(async () => {
+    const p = post();
+    if (p && p.content) {
+      // Parse markdown/html content
+      const raw = p.content;
+      const parsed = await marked.parse(raw);
+      // Configure allowed domains for iframes
+      const allowedDomains = ['www.youtube.com', 'youtube.com', 'player.vimeo.com', 'codepen.io'];
+
+      DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+        if (data.tagName === 'iframe') {
+          const src = node.getAttribute('src');
+          if (src) {
+            try {
+              const url = new URL(src);
+              if (!allowedDomains.includes(url.hostname)) {
+                node.remove(); // Remove if domain is not allowed
+              }
+            } catch (e) {
+              node.remove(); // Remove if invalid URL
+            }
+          } else {
+            node.remove(); // Remove if no src
+          }
+        }
+      });
+
+      const clean = DOMPurify.sanitize(parsed, {
+        ADD_TAGS: ["iframe"],
+        ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src"]
+      });
+
+      // Remove hook after usage to avoid memory leaks or affecting other sanitizations if global
+      DOMPurify.removeHook('uponSanitizeElement');
+
+      setHtmlContent(clean);
+    }
+  });
 
   return (
     <Show
@@ -64,7 +111,7 @@ export default function BlogDetail() {
                       {p().author.name}
                     </p>
                     <p class="font-oswald font-bold text-[9px] text-foreground/40 uppercase">
-                      Published: JAN 06, 2026 • 8 MIN READ
+                      Published: {p().date} • {p().read_time} READ
                     </p>
                   </div>
                 </div>
@@ -96,95 +143,45 @@ export default function BlogDetail() {
             {/* Content Body */}
             <div class="grid grid-cols-1 lg:grid-cols-12">
               <div class="lg:col-span-8 p-8 lg:p-20 border-r-2 border-accent prose-brutalist">
+                {/* Excerpt */}
                 <div class="bg-primary/10 border-2 border-primary p-8 mb-12">
                   <p class="font-oswald font-black text-xl lg:text-2xl uppercase italic leading-tight text-foreground/90">
                     {p().excerpt}
                   </p>
                 </div>
 
-                <div class="space-y-12 text-foreground">
-                  <section>
-                    <h2 class="font-oswald font-black text-3xl lg:text-4xl uppercase italic mb-6 text-foreground">
-                      What is Brutalist Design?
-                    </h2>
-                    <p class="font-oswald font-bold text-lg text-foreground/60 uppercase leading-relaxed mb-6">
-                      Brutalist web design draws inspiration from the brutalist
-                      architecture movement of the 1950s-1970s. It's
-                      characterized by bold typography, high-contrast colors,
-                      thick borders, and a rejection of subtle, polished
-                      aesthetics.
-                    </p>
-                    <p class="font-oswald font-bold text-lg text-foreground/60 uppercase leading-relaxed">
-                      The key principles include embracing rawness, prioritizing
-                      function over form, using bold visual elements, and
-                      breaking conventional design rules.
-                    </p>
-                  </section>
-
-                  <div class="bg-black p-10 relative overflow-hidden group border-2 border-accent">
-                    <div class="relative z-10 text-white font-mono text-sm leading-relaxed">
-                      <pre class="whitespace-pre-wrap">
-                        {`.brutalis-card {
-  background: #d1f432;
-  border: 4px solid #000;
-  box-shadow: 8px 8px 0px #000;
-  font-family: 'Oswald', sans-serif;
-  text-transform: uppercase;
-  font-weight: 900;
-}`}
-                      </pre>
-                    </div>
-                    <div class="absolute top-0 right-0 p-2 text-white/20 font-oswald font-black text-[8px] uppercase">
-                      css_snippet_v1.0.cfg
-                    </div>
-                  </div>
-
-                  <section>
-                    <h2 class="font-oswald font-black text-3xl lg:text-4xl uppercase italic mb-8 text-foreground">
-                      Key Design Elements
-                    </h2>
-                    <div class="space-y-4">
-                      <div class="border-2 border-accent p-6 flex items-start gap-4">
-                        <span class="w-8 h-8 bg-accent text-background flex items-center justify-center font-oswald font-black text-xs">
-                          01
-                        </span>
-                        <div>
-                          <h4 class="font-oswald font-black text-xl uppercase mb-2 text-foreground">
-                            Typography
-                          </h4>
-                          <p class="text-[10px] font-oswald font-bold text-foreground/40 uppercase">
-                            Big, bold, condensed fonts. Hierarchy is provided
-                            not by finesse, but by sheer scale and contrast.
-                          </p>
-                        </div>
-                      </div>
-                      <div class="border-2 border-accent p-6 flex items-start gap-4">
-                        <span class="w-8 h-8 bg-accent text-background flex items-center justify-center font-oswald font-black text-xs">
-                          02
-                        </span>
-                        <div>
-                          <h4 class="font-oswald font-black text-xl uppercase mb-2 text-foreground">
-                            Color Palette
-                          </h4>
-                          <p class="text-[10px] font-oswald font-bold text-foreground/40 uppercase">
-                            Stark, high-contrast colors like neon green, deep
-                            black, and bright white are the heart of the
-                            aesthetic.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                  <div class="bg-primary p-12 lg:p-16 border-4 border-black box-shadow-brutal relative">
-                    <div class="absolute top-0 right-0 w-16 h-1 bg-black"></div>
-                    <div class="absolute top-0 right-0 w-1 h-16 bg-black"></div>
-                    <h3 class="font-oswald font-black text-4xl lg:text-6xl text-center uppercase tracking-tighter italic leading-[0.85] text-black">
-                      "BRUTALISM ISN'T JUST A TREND—IT'S A REBELLION AGAINST
-                      HOMOGENEOUS DESIGN"
-                    </h3>
-                  </div>
-                </div>
+                {/* Dynamic Content */}
+                <div
+                  class="
+                        text-foreground 
+                        space-y-6
+                        [&>h1]:font-oswald [&>h1]:font-black [&>h1]:text-4xl [&>h1]:uppercase [&>h1]:mb-6 [&>h1]:mt-8
+                        [&>h2]:font-oswald [&>h2]:font-black [&>h2]:text-3xl [&>h2]:uppercase [&>h2]:mb-6 [&>h2]:mt-10 [&>h2]:italic
+                        [&>h3]:font-oswald [&>h3]:font-bold [&>h3]:text-2xl [&>h3]:uppercase [&>h3]:mb-4 [&>h3]:mt-8
+                        [&>h4]:font-oswald [&>h4]:font-bold [&>h4]:text-xl [&>h4]:uppercase [&>h4]:mb-3 [&>h4]:mt-6
+                        
+                        [&>p]:font-inter [&>p]:leading-relaxed [&>p]:mb-6 [&>p]:text-lg
+                        
+                        [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:mb-6 [&>ul]:space-y-2
+                        [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:mb-6 [&>ol]:space-y-2
+                        [&>li]:text-lg
+                        
+                        [&>blockquote]:border-l-4 [&>blockquote]:border-primary [&>blockquote]:pl-6 [&>blockquote]:italic [&>blockquote]:text-xl [&>blockquote]:font-serif [&>blockquote]:my-8 [&>blockquote]:bg-accent/5 [&>blockquote]:p-4
+                        
+                        [&>pre]:bg-black [&>pre]:p-6 [&>pre]:text-white [&>pre]:border-2 [&>pre]:border-accent [&>pre]:overflow-x-auto [&>pre]:mb-8 [&>pre]:font-mono [&>pre]:text-sm
+                        
+                        [&>img]:border-2 [&>img]:border-accent [&>img]:max-w-full [&>img]:h-auto [&>img]:mb-6
+                        
+                        [&>table]:w-full [&>table]:border-collapse [&>table]:border-2 [&>table]:border-accent [&>table]:mb-8
+                        [&>th]:border-2 [&>th]:border-accent [&>th]:p-3 [&>th]:bg-accent/10 [&>th]:font-oswald [&>th]:font-bold [&>th]:uppercase [&>th]:text-left
+                        [&>td]:border-2 [&>td]:border-accent [&>td]:p-3 [&>td]:font-mono [&>td]:text-sm
+                        
+                        [&>iframe]:w-full [&>iframe]:aspect-video [&>iframe]:mb-8 [&>iframe]:border-2 [&>iframe]:border-accent
+                        
+                        [&>a]:text-primary [&>a]:underline [&>a]:font-bold hover:[&>a]:no-underline
+                    "
+                  innerHTML={htmlContent()}
+                />
               </div>
 
               {/* Post Navigation Sidebar */}
@@ -209,15 +206,14 @@ export default function BlogDetail() {
                 <div>
                   <div class="flex items-center gap-2 mb-8">
                     <div class="w-12 h-12 bg-primary border-2 border-accent flex items-center justify-center font-oswald font-black text-2xl italic text-black">
-                      !
+                      {p().author.initials}
                     </div>
                     <h4 class="font-oswald font-black text-xl uppercase italic text-foreground">
-                      About Alex Chen
+                      About {p().author.name}
                     </h4>
                   </div>
                   <p class="text-xs font-oswald font-bold text-foreground/40 uppercase leading-relaxed mb-6">
-                    Senior Designer at DAKOPI STUDIO with 10+ years of
-                    experience in brutalist and experimental web design.
+                    {p().author.role} at DAKOPI STUDIO with experience in experimental web design.
                   </p>
                   <Button variant="outline" size="sm" class="w-full">
                     Follow
@@ -230,15 +226,15 @@ export default function BlogDetail() {
                   </h4>
                   <div class="space-y-6">
                     <For each={blogPosts.slice(2)}>
-                      {(p) => (
-                        <A href={`/blog/${p.slug}`} class="block group">
+                      {(rel) => (
+                        <A href={`/blog/${rel.slug}`} class="block group">
                           <div class="border-2 border-accent p-4 group-hover:bg-primary transition-colors">
                             <h5 class="font-oswald font-black text-sm uppercase leading-tight mb-2 italic text-foreground group-hover:text-black">
-                              {p.title}
+                              {rel.title}
                             </h5>
                             <div class="flex justify-between items-center text-[8px] font-oswald font-bold text-foreground/40 group-hover:text-black/60 uppercase">
-                              <span>By {p.author.name}</span>
-                              <span>8 MIN READ</span>
+                              <span>By {rel.author.name}</span>
+                              <span>{rel.read_time} READ</span>
                             </div>
                           </div>
                         </A>
@@ -253,13 +249,14 @@ export default function BlogDetail() {
             <section class="p-8 lg:p-20 border-t-2 border-accent bg-surface">
               <div class="flex items-center justify-between mb-12">
                 <h3 class="font-oswald font-black text-4xl uppercase italic text-foreground">
-                  Comments (42)
+                  Comments ({p().comments_count})
                 </h3>
                 <Button variant="primary" size="sm">
                   Add Comment
                 </Button>
               </div>
 
+              {/* Comment form omitted for brevity but standard logic applies */}
               <div class="border-2 border-accent p-8 bg-background mb-12">
                 <textarea
                   placeholder="Write your thoughts..."
@@ -272,34 +269,6 @@ export default function BlogDetail() {
                   <Button variant="primary" size="sm">
                     Post
                   </Button>
-                </div>
-              </div>
-
-              <div class="space-y-6">
-                <div class="border-2 border-accent p-6 bg-background">
-                  <div class="flex items-center gap-3 mb-4">
-                    <div class="w-6 h-6 bg-primary border-2 border-accent flex items-center justify-center font-oswald font-black text-[8px] text-black">
-                      SL
-                    </div>
-                    <span class="font-oswald font-black text-[10px] uppercase text-foreground">
-                      Sarah Ledger
-                    </span>
-                    <span class="text-[8px] font-oswald font-bold text-foreground/20 uppercase ml-auto">
-                      Jan 07, 2026
-                    </span>
-                  </div>
-                  <p class="font-oswald font-bold text-xs text-foreground/60 uppercase">
-                    This is exactly what I needed. The brutalist approach really
-                    stands out in today's web.
-                  </p>
-                  <div class="mt-4 flex gap-4 text-[8px] font-oswald font-black uppercase text-foreground/40">
-                    <span class="cursor-pointer hover:text-foreground transition-colors">
-                      Like
-                    </span>
-                    <span class="cursor-pointer hover:text-foreground transition-colors">
-                      Reply
-                    </span>
-                  </div>
                 </div>
               </div>
             </section>

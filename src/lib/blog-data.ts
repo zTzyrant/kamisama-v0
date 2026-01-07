@@ -20,6 +20,93 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: 'markdown-features-showcase',
+    number: '00',
+    title: 'Markdown Features Showcase',
+    excerpt: 'A comprehensive guide and test suite for all supported Markdown formatting, embeds, and media features in our new editor.',
+    date: 'JAN 07, 2026',
+    category: 'SYSTEM',
+    tags: ['MARKDOWN', 'TESTING', 'SYSTEM'],
+    image: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=2670&auto=format&fit=crop',
+    read_time: '5 min',
+    comments_count: 0,
+    author: {
+      name: 'SYSTEM ADMIN',
+      avatar: 'https://i.pravatar.cc/150?u=system',
+      role: 'Administrator',
+      initials: 'SA'
+    },
+    content: `
+## Typography & Headings
+Testing the hierarchy of headings.
+
+# Heading Level 1
+## Heading Level 2
+### Heading Level 3
+#### Heading Level 4
+
+## Text Formatting
+Testing standard text styles.
+
+This is **Bold Text**, this is *Italic Text*, and this is ***Bold Italic Text***.
+
+Here is a [Link to Example.com](https://example.com).
+
+> "This is a blockquote. It should stand out from the rest of the text, often used for quotes or highlighting important information."
+>
+> — Anonymous
+
+## Lists
+### Unordered List
+- Item One
+- Item Two
+- Item Three with **Bold** text
+
+### Ordered List
+1. First Step
+2. Second Step
+3. Third Step
+
+## Media & Images
+### Standard Image
+![Abstract](https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600)
+
+### Aligned Images (HTML embedded in Markdown)
+These use the editor's advanced options (which generate HTML).
+
+<div class="clearfix">
+<img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=400" alt="Neon Signs" style="width: 50%; float: left; margin-right: 1rem; margin-bottom: 0.5rem;" class="float-left mr-4 mb-2" />
+<p>This text flows around the image which is floated to the left. The image is set to 50% width. Brutalism often uses stark contrasts and layout breaks.</p>
+</div>
+<div style="clear: both;"></div>
+
+<img src="https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?q=80&w=400" alt="Grid" style="width: 50%; margin-left: auto; margin-right: auto; display: block;" class="mx-auto block" />
+<p style="text-align: center;">Above is a centered image (50% width).</p>
+
+## Tables
+| Feature | Status | Notes |
+| :--- | :--- | :--- |
+| Markdown | Supported | Full GFM Support |
+| Images | Advanced | Alignment & Size |
+| Embeds | Active | YouTube, CodePen, etc. |
+
+## Code Blocks
+\`\`\`javascript
+// This is a code block
+function greet(name) {
+  console.log("Hello, " + name);
+}
+
+greet("World");
+\`\`\`
+
+## Embeds
+### YouTube
+<iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
+    `
+
+  },
+  {
     slug: 'the-future-of-web-simplicity',
     number: '01',
     title: 'The Future of Web Simplicity',

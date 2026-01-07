@@ -15,6 +15,7 @@
     0% {
       transform: translateX(0);
     }
+
     100% {
       transform: translateX(-50%);
     }
@@ -32,7 +33,8 @@
   --background: #ffffff;
   --foreground: #000000;
   --primary: #d1f432;
-  --accent: #e5e5e5;
+  --accent: #000000;
+  --surface: #f4f4f5;
 }
 
 [data-theme='dark'] {
@@ -40,13 +42,15 @@
   --foreground: #ededed;
   --primary: #d1f432;
   --accent: #333333;
+  --surface: #121212;
 }
 
 [data-theme='rebel'] {
   --background: #ff3333;
   --foreground: #000000;
-  --primary: #000000;
+  --primary: #ffffff;
   --accent: #000000;
+  --surface: #e62e2e;
 }
 
 body {

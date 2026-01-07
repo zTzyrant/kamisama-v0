@@ -34,7 +34,7 @@ export default function App() {
 
           return (
             <>
-              {!isBlog() && <Nav />}
+              {!isBlog() && !location.pathname.startsWith('/dashboard') && <Nav />}
               <Suspense>{props.children}</Suspense>
             </>
           );

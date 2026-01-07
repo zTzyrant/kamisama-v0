@@ -1,164 +1,141 @@
-import { Title } from '@solidjs/meta';
-import { A } from '@solidjs/router';
-import { FileText, Eye, MessageSquare, TrendingUp, Clock } from 'lucide-solid';
-
-const STATS = [
-  {
-    label: 'Total Articles',
-    value: '42',
-    icon: FileText,
-    change: '+12% this month'
-  },
-  {
-    label: 'Total Views',
-    value: '128.5K',
-    icon: Eye,
-    change: '+5.4% this month'
-  },
-  {
-    label: 'Comments',
-    value: '1,248',
-    icon: MessageSquare,
-    change: '+2.1% this month'
-  },
-  {
-    label: 'Avg. Read Time',
-    value: '4m 32s',
-    icon: Clock,
-    change: '-12s this month'
-  }
-];
-
-const RECENT_ACTIVITY = [
-  {
-    action: 'New comment on "The Future of Web Simplicity"',
-    time: '2 mins ago',
-    user: 'Sarah L.'
-  },
-  {
-    action: 'Article "Brutalist Design Patterns" published',
-    time: '4 hours ago',
-    user: 'Alex C.'
-  },
-  {
-    action: 'New subscriber joined the newsletter',
-    time: '5 hours ago',
-    user: 'john@example.com'
-  },
-  { action: 'System maintenance completed', time: '1 day ago', user: 'System' }
-];
+import { Title } from "@solidjs/meta";
+import { ArrowUpRight, ArrowDownRight, ArrowRight, ExternalLink } from "lucide-solid";
 
 export default function DashboardHome() {
   return (
-    <div class="space-y-12">
-      <Title>Dashboard Overview | DAKOPI</Title>
+    <>
+      <Title>Dashboard | DAKOTA ADMIN</Title>
 
-      {/* Header */}
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 class="font-oswald font-black text-4xl lg:text-6xl uppercase italic text-foreground leading-[0.85]">
-            Welcome Back, <span class="text-primary">Admin</span>
-          </h1>
-          <p class="font-oswald font-bold text-foreground/40 uppercase mt-2">
-            Here's what's happening with your content today.
-          </p>
-        </div>
-        <div class="flex gap-2">
-          <button class="bg-foreground text-background font-oswald font-bold uppercase px-6 py-2 hover:bg-primary hover:text-black transition-colors">
-            View Analytics
-          </button>
-        </div>
-      </div>
+      {/* Header Area in Body (as per design, though Title is now in Navbar, visual header text is still good) */}
+      <h1 class="font-oswald italic text-6xl mb-8 uppercase text-foreground tracking-tighter">
+        Dashboard
+      </h1>
 
       {/* Stats Grid */}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {STATS.map((stat) => (
-          <div class="bg-surface border-2 border-accent p-6 group hover:border-primary transition-colors">
-            <div class="flex items-start justify-between mb-4">
-              <div class="p-3 bg-background border-2 border-accent text-foreground group-hover:bg-primary group-hover:border-black group-hover:text-black transition-colors">
-                <stat.icon size={24} />
-              </div>
-              <span class="font-oswald font-bold text-[10px] text-green-500 bg-green-500/10 px-2 py-1 uppercase">
-                {stat.change}
-              </span>
-            </div>
-            <h3 class="font-oswald font-black text-4xl text-foreground mb-1">
-              {stat.value}
-            </h3>
-            <p class="font-oswald font-bold text-xs text-foreground/60 uppercase">
-              {stat.label}
-            </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 mb-8 border border-accent bg-background">
+        <div class="p-6 border-r border-accent relative group">
+          <div class="font-mono text-xs uppercase text-neutral-500 dark:text-neutral-400 mb-2">Total Views</div>
+          <div class="font-oswald text-5xl font-bold text-foreground group-hover:text-primary transition-colors">1.2M</div>
+          <div class="absolute top-6 right-6 text-green-500 text-xs font-mono flex items-center">
+            <ArrowUpRight class="w-3.5 h-3.5 mr-1" /> +12%
           </div>
-        ))}
+        </div>
+        <div class="p-6 border-r border-accent relative group">
+          <div class="font-mono text-xs uppercase text-neutral-500 dark:text-neutral-400 mb-2">Unique Visitors</div>
+          <div class="font-oswald text-5xl font-bold text-foreground group-hover:text-primary transition-colors">842K</div>
+          <div class="absolute top-6 right-6 text-green-500 text-xs font-mono flex items-center">
+            <ArrowUpRight class="w-3.5 h-3.5 mr-1" /> +5%
+          </div>
+        </div>
+        <div class="p-6 border-r border-accent relative group">
+          <div class="font-mono text-xs uppercase text-neutral-500 dark:text-neutral-400 mb-2">Avg Read Time</div>
+          <div class="font-oswald text-5xl font-bold text-foreground group-hover:text-primary transition-colors">4:12</div>
+          <div class="absolute top-6 right-6 text-red-500 text-xs font-mono flex items-center">
+            <ArrowDownRight class="w-3.5 h-3.5 mr-1" /> -1.2%
+          </div>
+        </div>
+        <div class="p-6 relative group">
+          <div class="font-mono text-xs uppercase text-neutral-500 dark:text-neutral-400 mb-2">Comments</div>
+          <div class="font-oswald text-5xl font-bold text-foreground group-hover:text-primary transition-colors">3.8K</div>
+          <div class="absolute top-6 right-6 text-green-500 text-xs font-mono flex items-center">
+            <ArrowUpRight class="w-3.5 h-3.5 mr-1" /> +24%
+          </div>
+        </div>
       </div>
 
-      {/* Activity & Quick Links */}
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Activity */}
-        <div class="lg:col-span-2 border-2 border-accent bg-background p-8">
-          <h2 class="font-oswald font-black text-2xl uppercase italic text-foreground mb-8 flex items-center gap-2">
-            <TrendingUp size={24} class="text-primary" />
-            Recent Activity
-          </h2>
-          <div class="space-y-6">
-            {RECENT_ACTIVITY.map((item, i) => (
-              <div class="flex items-start gap-4 pb-6 border-b border-accent/20 last:border-0 last:pb-0">
-                <span class="font-oswald font-black text-sm text-foreground/20">
-                  0{i + 1}
-                </span>
-                <div>
-                  <p class="font-oswald font-bold text-sm text-foreground uppercase mb-1">
-                    {item.action}
-                  </p>
-                  <p class="font-oswald font-bold text-xs text-foreground/40 uppercase">
-                    {item.time} • {item.user}
-                  </p>
+      {/* Content Grid */}
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Main Feature (8 cols) */}
+        <div class="lg:col-span-8 flex flex-col">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="font-mono text-sm uppercase text-neutral-500 dark:text-neutral-400 tracking-wider">Latest Drop</h2>
+            <a class="text-xs font-mono text-primary hover:underline cursor-pointer">VIEW ALL</a>
+          </div>
+          <div class="flex-1 border border-accent bg-background flex flex-col">
+            <div class="h-64 bg-accent/20 border-b border-accent flex items-center justify-center relative overflow-hidden group">
+              <div class="absolute inset-0 opacity-20 dark:opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-neutral-400 via-neutral-900 to-black"></div>
+              {/* Placeholder Image using CSS pattern or just div since external images might break */}
+              <div class="absolute inset-0 bg-accent/10 flex items-center justify-center text-neutral-600">
+                <span class="font-oswald text-4xl opacity-20">FEATURED IMAGE</span>
+              </div>
+              <div class="absolute bottom-0 left-0 bg-primary text-black px-4 py-1 font-mono text-xs font-bold uppercase">Published</div>
+            </div>
+            <div class="p-8 flex-1 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center gap-4 text-xs font-mono text-neutral-500 dark:text-neutral-400 mb-4">
+                  <span>JUNE 24, 2024</span>
+                  <span>/</span>
+                  <span>DESIGN THEORY</span>
+                  <span>/</span>
+                  <span>4 MIN READ</span>
                 </div>
+                <h3 class="font-oswald italic font-bold text-4xl lg:text-5xl uppercase leading-none mb-6 text-foreground">
+                  Why Brutalism Never<br />Truly Dies
+                </h3>
+                <p class="font-sans text-neutral-600 dark:text-neutral-400 max-w-2xl leading-relaxed">
+                  Start writing your brutalist masterpiece here... Minimalist interfaces are stripping away the personality of the web. Here is why we need to bring back the raw, unpolished aesthetic of the early internet.
+                </p>
               </div>
-            ))}
+              <div class="mt-8 flex gap-4">
+                <button class="bg-transparent border border-accent text-foreground px-6 py-3 font-mono text-xs uppercase hover:bg-accent/10 transition-colors">
+                  Edit Article
+                </button>
+                <button class="bg-transparent border border-transparent text-primary px-6 py-3 font-mono text-xs uppercase flex items-center gap-2 hover:opacity-80">
+                  View Live <ExternalLink class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* System Status */}
-        <div class="border-2 border-accent bg-surface p-8">
-          <h2 class="font-oswald font-black text-2xl uppercase italic text-foreground mb-8">
-            System Status
-          </h2>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between p-4 bg-background border-2 border-accent">
-              <span class="font-oswald font-bold text-xs uppercase text-foreground">
-                Database
-              </span>
-              <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-            </div>
-            <div class="flex items-center justify-between p-4 bg-background border-2 border-accent">
-              <span class="font-oswald font-bold text-xs uppercase text-foreground">
-                API Gateway
-              </span>
-              <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-            </div>
-            <div class="flex items-center justify-between p-4 bg-background border-2 border-accent">
-              <span class="font-oswald font-bold text-xs uppercase text-foreground">
-                Storage
-              </span>
-              <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
-            </div>
+        {/* Engagement / Sidebar (4 cols) */}
+        <div class="lg:col-span-4 flex flex-col">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="font-mono text-sm uppercase text-neutral-500 dark:text-neutral-400 tracking-wider">Engagement</h2>
+            <button class="text-xs font-mono text-neutral-500 dark:text-neutral-400 hover:text-white">FILTER</button>
           </div>
-
-          <div class="mt-8 pt-8 border-t-2 border-accent/20">
-            <p class="font-oswald font-bold text-xs text-foreground/40 uppercase mb-4">
-              Storage Usage
-            </p>
-            <div class="w-full bg-background border-2 border-accent h-4 p-0.5">
-              <div class="h-full bg-primary w-[75%]"></div>
+          <div class="border border-accent bg-background">
+            {/* Comment Item 1 */}
+            <div class="p-5 border-b border-accent hover:bg-accent/10 transition-colors cursor-pointer group">
+              <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 bg-primary rounded-none flex items-center justify-center text-[10px] font-bold text-black">JD</div>
+                  <span class="font-mono text-xs text-foreground font-bold">John Doe</span>
+                </div>
+                <span class="font-mono text-[10px] text-neutral-500">2m ago</span>
+              </div>
+              <p class="font-sans text-sm text-neutral-600 dark:text-neutral-300 line-clamp-2 mb-2">
+                "The typography choices here are absolutely savage. I love how the layout breaks the conventional grid..."
+              </p>
+              <div class="flex items-center gap-2">
+                <ArrowRight class="w-3 h-3 text-neutral-500" />
+                <span class="font-mono text-[10px] uppercase text-neutral-500 dark:text-neutral-500 group-hover:text-primary transition-colors">On: Modern Grid Systems</span>
+              </div>
             </div>
-            <div class="flex justify-between mt-2 font-oswald font-bold text-[10px] text-foreground/60 uppercase">
-              <span>750MB Used</span>
-              <span>1GB Total</span>
+            {/* Comment Item 2 */}
+            <div class="p-5 border-b border-accent hover:bg-accent/10 transition-colors cursor-pointer group">
+              <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 bg-neutral-700 rounded-none flex items-center justify-center text-[10px] font-bold text-white">AS</div>
+                  <span class="font-mono text-xs text-foreground font-bold">Alice Smith</span>
+                </div>
+                <span class="font-mono text-[10px] text-neutral-500">1h ago</span>
+              </div>
+              <p class="font-sans text-sm text-neutral-600 dark:text-neutral-300 line-clamp-2 mb-2">
+                Is there a dark mode version of this template available? I can't seem to find the toggle in the settings.
+              </p>
+              <div class="flex items-center gap-2">
+                <ArrowRight class="w-3 h-3 text-neutral-500" />
+                <span class="font-mono text-[10px] uppercase text-neutral-500 dark:text-neutral-500 group-hover:text-primary transition-colors">On: UX Patterns 2024</span>
+              </div>
             </div>
+            {/* View All */}
+            <a class="block p-4 text-center bg-accent/5 hover:bg-primary hover:text-black transition-colors font-mono text-xs uppercase font-bold text-neutral-500 dark:text-neutral-400 cursor-pointer">
+              View All Comments
+            </a>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
