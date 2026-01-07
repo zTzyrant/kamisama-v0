@@ -1,13 +1,23 @@
-import { For, onMount } from "solid-js";
-import { ArrowRight } from "lucide-solid";
-import { animate, stagger } from "motion";
+import { For, onMount } from 'solid-js';
+import { ArrowRight } from 'lucide-solid';
+import { animate, stagger } from 'motion';
 
 export default function SelectedWorks() {
   const works = [
-    { title: "Neon Flux", category: "E-Commerce / Web3", id: "01" },
-    { title: "Void Scape", category: "Portfolio / Three.js", id: "02", mt: "lg:mt-24" },
-    { title: "Mono Type", category: "Editorial / Archive", id: "03" },
-    { title: "Grid Lock", category: "Agency / Branding", id: "04", mt: "lg:mt-24" },
+    { title: 'Neon Flux', category: 'E-Commerce / Web3', id: '01' },
+    {
+      title: 'Void Scape',
+      category: 'Portfolio / Three.js',
+      id: '02',
+      mt: 'lg:mt-24'
+    },
+    { title: 'Mono Type', category: 'Editorial / Archive', id: '03' },
+    {
+      title: 'Grid Lock',
+      category: 'Agency / Branding',
+      id: '04',
+      mt: 'lg:mt-24'
+    }
   ];
 
   let containerRef: HTMLDivElement | undefined;
@@ -18,12 +28,12 @@ export default function SelectedWorks() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             animate(
-              entry.target.querySelectorAll(".work-item") as any,
+              entry.target.querySelectorAll('.work-item') as any,
               { opacity: [0, 1], x: [100, 0] },
               {
                 duration: 1.2,
                 delay: stagger(0.2),
-                ease: [0.16, 1, 0.3, 1],
+                ease: [0.16, 1, 0.3, 1]
               }
             );
             observer.unobserve(entry.target);
@@ -48,7 +58,7 @@ export default function SelectedWorks() {
             <br />
             <span
               class="text-transparent opacity-50"
-              style={{ "-webkit-text-stroke": "1px #ededed" }}
+              style={{ '-webkit-text-stroke': '1px #ededed' }}
             >
               Creations
             </span>
@@ -63,11 +73,18 @@ export default function SelectedWorks() {
           </div>
         </div>
 
-        <div ref={containerRef} class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div
+          ref={containerRef}
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
           <For each={works}>
             {(work) => (
-              <div class={`group relative cursor-pointer work-item opacity-0 ${work.mt || ""}`}>
-                <div class="relative aspect-[4/3] bg-[#1a1a1a] overflow-hidden mb-6">
+              <div
+                class={`group relative cursor-pointer work-item opacity-0 ${
+                  work.mt || ''
+                }`}
+              >
+                <div class="relative aspect-4/3 bg-[#1a1a1a] overflow-hidden mb-6">
                   <div class="absolute inset-0 bg-neutral-800 group-hover:scale-105 transition-transform duration-700 ease-out flex items-center justify-center text-neutral-700 text-9xl font-oswald opacity-20">
                     {work.id}
                   </div>

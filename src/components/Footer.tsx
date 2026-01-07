@@ -11,18 +11,32 @@ export default function Footer() {
             </h3>
           </div>
           <div class="mt-8 md:mt-0 flex flex-col text-right">
-            <span class="font-bold uppercase tracking-wider text-sm mb-4">Follow On</span>
+            <span class="font-bold uppercase tracking-wider text-sm mb-4">
+              Follow On
+            </span>
             <div class="flex flex-col gap-2">
-              <a href="#" class="font-oswald text-2xl uppercase hover:text-white transition-colors">
+              <a
+                href="#"
+                class="font-oswald text-2xl uppercase hover:text-white transition-colors"
+              >
                 Instagram
               </a>
-              <a href="#" class="font-oswald text-2xl uppercase hover:text-white transition-colors">
+              <a
+                href="#"
+                class="font-oswald text-2xl uppercase hover:text-white transition-colors"
+              >
                 Twitter
               </a>
-              <a href="#" class="font-oswald text-2xl uppercase hover:text-white transition-colors">
+              <a
+                href="#"
+                class="font-oswald text-2xl uppercase hover:text-white transition-colors"
+              >
                 LinkedIn
               </a>
-              <a href="#" class="font-oswald text-2xl uppercase hover:text-white transition-colors">
+              <a
+                href="#"
+                class="font-oswald text-2xl uppercase hover:text-white transition-colors"
+              >
                 GitHub
               </a>
             </div>

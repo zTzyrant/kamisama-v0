@@ -1,6 +1,6 @@
-import { A } from "@solidjs/router";
-import { createSignal, createEffect, onCleanup } from "solid-js";
-import { Menu, X } from "lucide-solid";
+import { A } from '@solidjs/router';
+import { createSignal, createEffect, onCleanup } from 'solid-js';
+import { Menu, X } from 'lucide-solid';
 
 export default function Nav() {
   const [isOpen, setIsOpen] = createSignal(false);
@@ -9,14 +9,14 @@ export default function Nav() {
 
   createEffect(() => {
     if (isOpen()) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     }
   });
 
   onCleanup(() => {
-    document.body.style.overflow = "";
+    document.body.style.overflow = '';
   });
 
   return (
@@ -55,17 +55,18 @@ export default function Nav() {
           onClick={toggle}
           class="md:hidden flex items-center gap-2 bg-primary text-black px-4 py-2 font-bold uppercase text-xs tracking-wider hover:bg-white transition-colors cursor-pointer z-50"
         >
-          <span>{isOpen() ? "Close" : "Menu"}</span>
+          <span>{isOpen() ? 'Close' : 'Menu'}</span>
           {isOpen() ? <X size={16} /> : <Menu size={16} />}
         </button>
       </nav>
 
       {/* Mobile Overlay */}
       <div
-        class={`fixed inset-0 z-40 bg-black flex flex-col items-center justify-center transition-all duration-500 ease-in-out ${isOpen()
-          ? "opacity-100 pointer-events-auto translate-y-0"
-          : "opacity-0 pointer-events-none -translate-y-full"
-          }`}
+        class={`fixed inset-0 z-40 bg-black flex flex-col items-center justify-center transition-all duration-500 ease-in-out ${
+          isOpen()
+            ? 'opacity-100 pointer-events-auto translate-y-0'
+            : 'opacity-0 pointer-events-none -translate-y-full'
+        }`}
       >
         <nav class="flex flex-col gap-8 text-center">
           <A

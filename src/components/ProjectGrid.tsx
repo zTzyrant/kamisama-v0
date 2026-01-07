@@ -1,10 +1,10 @@
-import { For } from "solid-js";
+import { For } from 'solid-js';
 
 export default function ProjectGrid() {
   const projects = Array.from({ length: 6 }).map((_, i) => ({
     id: i,
     title: `Project 0${i + 1}`,
-    image: `https://placehold.co/600x800/1a1a1a/FFF?text=Project+0${i + 1}`,
+    image: `https://placehold.co/600x800/1a1a1a/FFF?text=Project+0${i + 1}`
   }));
 
   return (
@@ -12,7 +12,7 @@ export default function ProjectGrid() {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-[1600px] mx-auto">
         <For each={projects}>
           {(project) => (
-            <div class="group relative overflow-hidden aspect-[3/4] cursor-pointer bg-neutral-900">
+            <div class="group relative overflow-hidden aspect-3/4 cursor-pointer bg-neutral-900">
               <img
                 src={project.image}
                 alt={project.title}

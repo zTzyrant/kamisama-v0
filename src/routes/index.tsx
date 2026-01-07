@@ -1,14 +1,14 @@
-import { onMount, onCleanup } from "solid-js";
-import { Title } from "@solidjs/meta";
-import { animate } from "motion";
-import Hero from "~/components/Hero";
-import Manifesto from "~/components/Manifesto";
-import SelectedWorks from "~/components/SelectedWorks";
-import TechStack from "~/components/TechStack";
-import ContactCta from "~/components/ContactCta";
-import Footer from "~/components/Footer";
+import { onMount, onCleanup } from 'solid-js';
+import { Title } from '@solidjs/meta';
+import { animate } from 'motion';
+import Hero from '~/components/Hero';
+import Manifesto from '~/components/Manifesto';
+import SelectedWorks from '~/components/SelectedWorks';
+import TechStack from '~/components/TechStack';
+import ContactCta from '~/components/ContactCta';
+import Footer from '~/components/Footer';
 
-declare module "solid-js" {
+declare module 'solid-js' {
   namespace JSX {
     interface Directives {
       reveal: boolean;
@@ -17,16 +17,16 @@ declare module "solid-js" {
 }
 
 function reveal(el: HTMLElement) {
-  el.style.opacity = "0";
-  el.style.transform = "translateY(50px)";
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(50px)';
 
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          animate(entry.target, { opacity: 1, transform: "translateY(0px)" }, {
+          animate(entry.target, { opacity: 1, transform: 'translateY(0px)' }, {
             duration: 1.2,
-            easing: [0.16, 1, 0.3, 1],
+            easing: [0.16, 1, 0.3, 1]
           } as any);
           observer.unobserve(entry.target);
         }

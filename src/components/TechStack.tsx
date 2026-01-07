@@ -1,22 +1,22 @@
-import { For } from "solid-js";
+import { For } from 'solid-js';
 
 export default function TechStack() {
   const stack = {
-    frontend: ["SolidStart", "Tailwind CSS", "React / Next.js", "Three.js"],
-    backend: ["Node.js", "PostgreSQL", "Figma", "Git / CI/CD"],
+    frontend: ['SolidStart', 'Tailwind CSS', 'React / Next.js', 'Three.js'],
+    backend: ['Node.js', 'PostgreSQL', 'Figma', 'Git / CI/CD']
   };
 
   return (
     <section class="bg-background py-32 border-t border-white/5 overflow-hidden">
       {/* Marquee */}
       <div class="mb-20 bg-primary text-black py-4 -rotate-1 scale-105 border-y-4 border-black overflow-hidden flex whitespace-nowrap">
-        <div class="font-oswald text-6xl uppercase font-bold tracking-tighter animate-[marquee_20s_linear_infinite] px-4">
-          Development • Design • Strategy • Performance • Development • Design • Strategy •
-          Performance •
+        <div class="font-oswald text-6xl uppercase font-bold tracking-tighter animate-marquee px-4">
+          Development • Design • Strategy • Performance • Development • Design •
+          Strategy • Performance •
         </div>
-        <div class="font-oswald text-6xl uppercase font-bold tracking-tighter animate-[marquee_20s_linear_infinite] px-4">
-          Development • Design • Strategy • Performance • Development • Design • Strategy •
-          Performance •
+        <div class="font-oswald text-6xl uppercase font-bold tracking-tighter animate-marquee px-4">
+          Development • Design • Strategy • Performance • Development • Design •
+          Strategy • Performance •
         </div>
       </div>
 

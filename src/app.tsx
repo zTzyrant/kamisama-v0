@@ -1,11 +1,12 @@
-import { Router } from "@solidjs/router";
-import { FileRoutes } from "@solidjs/start/router";
-import { Suspense, onMount } from "solid-js";
-import { MetaProvider, Link } from "@solidjs/meta";
-import Nav from "~/components/Nav";
-import "./app.css";
+import { Router } from '@solidjs/router';
+import { FileRoutes } from '@solidjs/start/router';
+import { Suspense, onMount } from 'solid-js';
+import { MetaProvider, Link } from '@solidjs/meta';
+import Nav from '~/components/Nav';
+import { initTheme } from '~/lib/theme';
+import './app.css';
 // @ts-ignore
-import Lenis from "@studio-freight/lenis";
+import Lenis from '@studio-freight/lenis';
 
 export default function App() {
   onMount(() => {
@@ -17,6 +18,7 @@ export default function App() {
     }
 
     requestAnimationFrame(raf);
+    initTheme();
   });
 
   return (
@@ -28,7 +30,7 @@ export default function App() {
       <Router
         root={(props) => {
           const location = props.location;
-          const isBlog = () => location.pathname.startsWith("/blog");
+          const isBlog = () => location.pathname.startsWith('/blog');
 
           return (
             <>

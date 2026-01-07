@@ -1,13 +1,13 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
-  --color-primary: #d1f432;
-  --color-accent: #333333;
-  --color-surface: #111111;
-  --font-oswald: "Oswald", sans-serif;
-  --font-inter: "Inter", sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-surface: var(--surface);
+  --font-oswald: 'Oswald', sans-serif;
+  --font-inter: 'Inter', sans-serif;
   --animate-spin-slow: spin 3s linear infinite;
   --animate-marquee: marquee 20s linear infinite;
 
@@ -25,13 +25,36 @@
   --background: #0a0a0a;
   --foreground: #ededed;
   --primary: #d1f432;
+  --accent: #333333;
+}
+
+[data-theme='light'] {
+  --background: #ffffff;
+  --foreground: #000000;
+  --primary: #d1f432;
+  --accent: #e5e5e5;
+}
+
+[data-theme='dark'] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --primary: #d1f432;
+  --accent: #333333;
+}
+
+[data-theme='rebel'] {
+  --background: #ff3333;
+  --foreground: #000000;
+  --primary: #000000;
+  --accent: #000000;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: "Inter", sans-serif;
+  font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1,
@@ -40,7 +63,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Oswald", sans-serif;
+  font-family: 'Oswald', sans-serif;
 }
 
 html.lenis,
@@ -102,4 +125,3 @@ html.lenis body {
 .light .prose blockquote {
   background: rgba(0, 0, 0, 0.03);
 }
-

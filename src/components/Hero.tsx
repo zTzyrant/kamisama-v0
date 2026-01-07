@@ -1,21 +1,22 @@
-import { createSignal, onMount, onCleanup } from "solid-js";
-import { animate } from "motion";
+import { createSignal, onMount, onCleanup } from 'solid-js';
+import { animate } from 'motion';
 
 export default function Hero() {
   const [scrollY, setScrollY] = createSignal(0);
 
   onMount(() => {
-    const handleScroll = () => requestAnimationFrame(() => setScrollY(window.scrollY));
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    const handleScroll = () =>
+      requestAnimationFrame(() => setScrollY(window.scrollY));
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Initial reveal animation
-    animate(".hero-reveal", { opacity: [0, 1], y: [60, 0] }, {
+    animate('.hero-reveal', { opacity: [0, 1], y: [60, 0] }, {
       duration: 1.4,
       easing: [0.16, 1, 0.3, 1],
-      delay: 0.1,
+      delay: 0.1
     } as any);
 
-    onCleanup(() => window.removeEventListener("scroll", handleScroll));
+    onCleanup(() => window.removeEventListener('scroll', handleScroll));
   });
 
   return (
@@ -30,11 +31,11 @@ export default function Hero() {
       {/* Main Content */}
       <div class="relative z-10 w-full px-4 flex flex-col items-center justify-center text-center hero-reveal">
         <div class="mb-4 flex items-center gap-4">
-          <span class="h-[1px] w-12 bg-primary"></span>
+          <span class="h-px w-12 bg-primary"></span>
           <span class="text-primary uppercase tracking-[0.3em] text-[10px] md:text-xs font-bold">
             Digital Experiences
           </span>
-          <span class="h-[1px] w-12 bg-primary"></span>
+          <span class="h-px w-12 bg-primary"></span>
         </div>
 
         <h1 class="font-oswald font-bold text-[15vw] leading-[0.8] tracking-tighter uppercase text-foreground mix-blend-overlay selection:bg-primary selection:text-black">
@@ -50,15 +51,15 @@ export default function Hero() {
             class="w-full h-auto object-cover grayscale contrast-125 brightness-75 rounded-full blur-sm"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRqcm1dEjNKsFozG9vQMM5VODpDdXxCCAVpvYDYlmVU8p46aRXwgSDnKLhA_tqQ2ZZZ-BDrxeg3xCBW7tgFDrL78nWuDpAEd6O2tgqLQSI0vqJDO7HRBICUD_OY3o-dEqe-Y16WQK-0MDabSFowCxqUwjb-63r1g1MmKidGxqM-_xG3jeXbL01mwPUSuzXbGICPfe5aEbkOuls6I-Tm-1OVnBTV3OoaK1fZQxBAJF03egATgyKbSGuj5Ylt6Bmi21P4_1SQOi_RqY"
             style={{
-              transform: `translateY(${scrollY() * 0.2}px)`,
+              transform: `translateY(${scrollY() * 0.2}px)`
             }}
           />
         </div>
 
         <div class="mt-12 max-w-2xl mx-auto">
           <p class="text-lg md:text-xl text-neutral-400 font-light leading-relaxed">
-            Redefining boundaries in digital design. We craft heavy hitting interfaces with a smooth
-            finish.
+            Redefining boundaries in digital design. We craft heavy hitting
+            interfaces with a smooth finish.
             <span class="text-white font-medium"> Built for the bold.</span>
           </p>
         </div>
@@ -85,11 +86,11 @@ export default function Hero() {
       <div class="absolute bottom-10 left-6 md:left-20 flex flex-col items-center gap-2 mix-blend-difference hero-reveal">
         <span
           class="text-[10px] uppercase tracking-widest text-neutral-400 rotate-180"
-          style={{ "writing-mode": "vertical-rl" }}
+          style={{ 'writing-mode': 'vertical-rl' }}
         >
           Scroll Down
         </span>
-        <div class="h-16 w-[1px] bg-neutral-600 relative overflow-hidden">
+        <div class="h-16 w-px bg-neutral-600 relative overflow-hidden">
           <div class="absolute top-0 left-0 w-full h-1/2 bg-primary animate-[pulseslide_2s_linear_infinite]"></div>
         </div>
       </div>
