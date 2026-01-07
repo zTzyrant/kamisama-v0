@@ -30,18 +30,21 @@ export default function BlogDetail() {
 
       DOMPurify.addHook('uponSanitizeElement', (node, data) => {
         if (data.tagName === 'iframe') {
+          // Narrow `node` to Element
+          if (!(node instanceof Element)) return;
+
           const src = node.getAttribute('src');
           if (src) {
             try {
               const url = new URL(src);
               if (!allowedDomains.includes(url.hostname)) {
-                node.remove(); // Remove if domain is not allowed
+                node.remove(); // Now safe: Element has .remove()
               }
             } catch (e) {
-              node.remove(); // Remove if invalid URL
+              node.remove(); // Invalid URL
             }
           } else {
-            node.remove(); // Remove if no src
+            node.remove(); // No src
           }
         }
       });
