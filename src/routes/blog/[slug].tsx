@@ -6,6 +6,8 @@ import Button from '~/components/ui/Button';
 import { ArrowLeft, Share2, Clock, MessageSquare, Heart } from 'lucide-solid';
 import BlogHeader from '~/components/BlogHeader';
 import BlogFooter from '~/components/BlogFooter';
+import TableOfContents from '~/components/TableOfContents';
+import { extractHeadings, slugify, type TocItem } from '~/lib/toc';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -17,16 +19,33 @@ marked.setOptions({
 export default function BlogDetail() {
   const params = useParams();
   const post = createMemo(() => blogPosts.find((p) => p.slug === params.slug));
-  const [htmlContent, setHtmlContent] = createSignal("");
+  const [htmlContent, setHtmlContent] = createSignal('');
+  const [tocHeadings, setTocHeadings] = createSignal<TocItem[]>([]);
 
   createEffect(async () => {
     const p = post();
     if (p && p.content) {
       // Parse markdown/html content
       const raw = p.content;
-      const parsed = await marked.parse(raw);
+
+      const headings = extractHeadings(raw);
+      setTocHeadings(headings);
+
+      const renderer = new marked.Renderer();
+      renderer.heading = ({ text, depth }) => {
+        const id = slugify(text);
+        return `<h${depth} id="${id}" class="scroll-mt-24">${text}</h${depth}>`;
+      };
+
+      const parsed = await marked.parse(raw, { renderer });
       // Configure allowed domains for iframes
-      const allowedDomains = ['www.youtube.com', 'youtube.com', 'player.vimeo.com', 'codepen.io', 'jsfiddle.net'];
+      const allowedDomains = [
+        'www.youtube.com',
+        'youtube.com',
+        'player.vimeo.com',
+        'codepen.io',
+        'jsfiddle.net'
+      ];
 
       DOMPurify.addHook('uponSanitizeElement', (node, data) => {
         if (data.tagName === 'iframe' || data.tagName === 'IFRAME') {
@@ -38,7 +57,9 @@ export default function BlogDetail() {
           if (src) {
             try {
               const url = new URL(src);
-              const isAllowed = allowedDomains.some(d => url.hostname.endsWith(d));
+              const isAllowed = allowedDomains.some((d) =>
+                url.hostname.endsWith(d)
+              );
 
               if (!isAllowed) {
                 console.warn('Blocked domain:', url.hostname);
@@ -56,8 +77,21 @@ export default function BlogDetail() {
       });
 
       const clean = DOMPurify.sanitize(parsed, {
-        ADD_TAGS: ["iframe"],
-        ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "width", "height", "title", "referrerpolicy", "style", "loading", "allowtransparency"]
+        ADD_TAGS: ['iframe'],
+        ADD_ATTR: [
+          'allow',
+          'allowfullscreen',
+          'frameborder',
+          'scrolling',
+          'src',
+          'width',
+          'height',
+          'title',
+          'referrerpolicy',
+          'style',
+          'loading',
+          'allowtransparency'
+        ]
       });
 
       // Remove hook after usage to avoid memory leaks or affecting other sanitizations if global
@@ -212,6 +246,10 @@ export default function BlogDetail() {
                   </div>
                 </div>
 
+                <div class="bg-surface p-8 border-2 border-accent sticky top-24">
+                  <TableOfContents headings={tocHeadings()} />
+                </div>
+
                 <div>
                   <div class="flex items-center gap-2 mb-8">
                     <div class="w-12 h-12 bg-primary border-2 border-accent flex items-center justify-center font-oswald font-black text-2xl italic text-black">
@@ -222,7 +260,8 @@ export default function BlogDetail() {
                     </h4>
                   </div>
                   <p class="text-xs font-oswald font-bold text-foreground/40 uppercase leading-relaxed mb-6">
-                    {p().author.role} at DAKOPI STUDIO with experience in experimental web design.
+                    {p().author.role} at DAKOPI STUDIO with experience in
+                    experimental web design.
                   </p>
                   <Button variant="outline" size="sm" class="w-full">
                     Follow
@@ -269,7 +308,7 @@ export default function BlogDetail() {
               <div class="border-2 border-accent p-8 bg-background mb-12">
                 <textarea
                   placeholder="Write your thoughts..."
-                  class="w-full h-32 font-oswald font-bold text-xs uppercase outline-none resize-none bg-background text-foreground"
+                  class="w-full h-full font-oswald font-bold text-xs uppercase outline-none resize-none bg-background text-foreground p-4"
                 ></textarea>
                 <div class="mt-4 flex justify-end gap-3">
                   <Button variant="ghost" size="sm">

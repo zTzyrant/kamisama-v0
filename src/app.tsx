@@ -8,9 +8,16 @@ import './app.css';
 // @ts-ignore
 import Lenis from '@studio-freight/lenis';
 
+declare global {
+  interface Window {
+    lenis: Lenis;
+  }
+}
+
 export default function App() {
   onMount(() => {
     const lenis = new Lenis();
+    window.lenis = lenis;
 
     function raf(time: number) {
       lenis.raf(time);
@@ -34,7 +41,9 @@ export default function App() {
 
           return (
             <>
-              {!isBlog() && !location.pathname.startsWith('/dashboard') && <Nav />}
+              {!isBlog() && !location.pathname.startsWith('/dashboard') && (
+                <Nav />
+              )}
               <Suspense>{props.children}</Suspense>
             </>
           );
