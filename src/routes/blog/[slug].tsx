@@ -26,32 +26,38 @@ export default function BlogDetail() {
       const raw = p.content;
       const parsed = await marked.parse(raw);
       // Configure allowed domains for iframes
-      const allowedDomains = ['www.youtube.com', 'youtube.com', 'player.vimeo.com', 'codepen.io'];
+      const allowedDomains = ['www.youtube.com', 'youtube.com', 'player.vimeo.com', 'codepen.io', 'jsfiddle.net'];
 
       DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-        if (data.tagName === 'iframe') {
-          // Narrow `node` to Element
-          if (!(node instanceof Element)) return;
+        if (data.tagName === 'iframe' || data.tagName === 'IFRAME') {
+          // Explicitly cast to Element to resolve TypeScript errors
+          const element = node as Element;
 
-          const src = node.getAttribute('src');
+          const src = element.getAttribute('src');
+          // console.log('Sanitizing iframe:', src);
           if (src) {
             try {
               const url = new URL(src);
-              if (!allowedDomains.includes(url.hostname)) {
-                node.remove(); // Now safe: Element has .remove()
+              const isAllowed = allowedDomains.some(d => url.hostname.endsWith(d));
+
+              if (!isAllowed) {
+                console.warn('Blocked domain:', url.hostname);
+                element.remove();
               }
             } catch (e) {
-              node.remove(); // Invalid URL
+              console.error('Invalid URL:', src);
+              element.remove();
             }
           } else {
-            node.remove(); // No src
+            console.warn('No src attribute found');
+            element.remove();
           }
         }
       });
 
       const clean = DOMPurify.sanitize(parsed, {
         ADD_TAGS: ["iframe"],
-        ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src"]
+        ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "width", "height", "title", "referrerpolicy", "style", "loading", "allowtransparency"]
       });
 
       // Remove hook after usage to avoid memory leaks or affecting other sanitizations if global

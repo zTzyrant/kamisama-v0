@@ -6,6 +6,9 @@ import {
   Bold, Italic, Link, Image as ImageIcon, Code, List, Save, Youtube, Eye, Upload,
   Calendar, X, Plus, Box, Table as TableIcon, Quote, Heading, Search, AlignCenter, AlignLeft, AlignRight
 } from "lucide-solid";
+import InputModal from "~/components/ui/InputModal";
+import SearchableSelect from "~/components/ui/SearchableSelect";
+import DatePicker from "~/components/ui/DatePicker";
 
 marked.setOptions({
   breaks: true,
@@ -30,6 +33,41 @@ export default function CreateArticle() {
   const [imgAlign, setImgAlign] = createSignal<'left' | 'center' | 'right'>('center');
   const [imgAlt, setImgAlt] = createSignal("");
 
+  // Input Modal State
+  const [inputModalOpen, setInputModalOpen] = createSignal(false);
+  const [inputModalConfig, setInputModalConfig] = createSignal({
+    title: "",
+    placeholder: "",
+    onSubmit: (value: string) => { },
+  });
+
+  // Article Meta State
+  const [status, setStatus] = createSignal("draft");
+  const [visibility, setVisibility] = createSignal("public");
+  const [scheduledDate, setScheduledDate] = createSignal<Date | null>(new Date());
+  const [tags, setTags] = createSignal<string[]>(["Brutalism", "Design"]);
+  const [toolbarDateRange, setToolbarDateRange] = createSignal<{ start: Date | null, end: Date | null }>({ start: null, end: null });
+
+  const availableTags = [
+    { label: "BRUTALISM", value: "Brutalism" },
+    { label: "DESIGN", value: "Design" },
+    { label: "DEVELOPMENT", value: "Development" },
+    { label: "TUTORIAL", value: "Tutorial" },
+    { label: "NEWS", value: "News" },
+    { label: "SOLIDJS", value: "SolidJS" },
+    { label: "TAILWIND", value: "Tailwind" },
+  ];
+
+  const addTag = (tag: string) => {
+    if (tag && !tags().includes(tag)) {
+      setTags([...tags(), tag]);
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags().filter(t => t !== tagToRemove));
+  };
+
   // Dummy Media Items
   const allMediaItems = [
     { id: 1, url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200", name: "abstract_01.jpg" },
@@ -46,7 +84,7 @@ export default function CreateArticle() {
   // Scroll Lock Efffect
   createEffect(() => {
     if (typeof document !== 'undefined') {
-      if (isPreviewOpen() || isMediaModalOpen()) {
+      if (isPreviewOpen() || isMediaModalOpen() || inputModalOpen()) {
         document.body.classList.add('overflow-hidden');
       } else {
         document.body.classList.remove('overflow-hidden');
@@ -71,6 +109,11 @@ export default function CreateArticle() {
     const clean = DOMPurify.sanitize(parsed);
     setHtmlContent(clean);
     setIsPreviewOpen(true);
+  };
+
+  const openInput = (title: string, placeholder: string, onSubmit: (value: string) => void) => {
+    setInputModalConfig({ title, placeholder, onSubmit });
+    setInputModalOpen(true);
   };
 
   const insertText = (before: string, after: string = "") => {
@@ -157,22 +200,28 @@ export default function CreateArticle() {
   };
 
   const handleEmbed = () => {
-    const url = window.prompt("Enter Embed URL (CodePen, CodeSandbox, JSFiddle):");
-    if (!url) return;
+    openInput("Enter Embed URL", "CodePen, CodeSandbox, JSFiddle...", (url) => {
+      if (!url) return;
 
-    let embedCode = "";
-    if (url.includes("codepen.io")) {
-      const slug = url.split('/').pop();
-      embedCode = `\n<iframe height="300" style="width: 100%;" scrolling="no" title="CodePen Embed" src="${url.replace('/pen/', '/embed/')}" frameborder="no" allowtransparency="true" allowfullscreen="true"></iframe>\n`;
-    } else if (url.includes("codesandbox.io")) {
-      embedCode = `\n<iframe src="${url.replace('/s/', '/embed/')}" style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;" allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"></iframe>\n`;
-    } else if (url.includes("jsfiddle.net")) {
-      embedCode = `\n<iframe width="100%" height="300" src="${url}embedded/" allowfullscreen="allowfullscreen" allowpaymentrequest frameborder="0"></iframe>\n`;
-    } else {
-      alert("Unsupported URL. Please use CodePen, CodeSandbox, or JSFiddle.");
-      return;
-    }
-    insertText(embedCode);
+      let embedCode = "";
+      if (url.includes("codepen.io")) {
+        const slug = url.split('/').pop();
+        // Remove query params if any in slug, though usually robust logic handles it.
+        // The replace logic below handles the URL structure.
+        embedCode = `\n<iframe height="300" style="width: 100%;" scrolling="no" title="CodePen Embed" src="${url.replace('/pen/', '/embed/').split('?')[0]}?default-tab=result" frameborder="no" allowtransparency="true" allowfullscreen="true"></iframe>\n`;
+      } else if (url.includes("codesandbox.io")) {
+        embedCode = `\n<iframe src="${url.replace('/s/', '/embed/')}" style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;" allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"></iframe>\n`;
+      } else if (url.includes("jsfiddle.net")) {
+        let embedUrl = url;
+        if (!embedUrl.endsWith('/')) embedUrl += '/';
+        if (!embedUrl.includes('embedded')) embedUrl += 'embedded/';
+        embedCode = `\n<iframe width="100%" height="300" src="${embedUrl}" allowfullscreen="allowfullscreen" allowpaymentrequest frameborder="0"></iframe>\n`;
+      } else {
+        alert("Unsupported URL. Please use CodePen, CodeSandbox, or JSFiddle.");
+        return;
+      }
+      insertText(embedCode);
+    });
   };
 
   const openMediaModal = (target: 'editor' | 'featured') => {
@@ -217,18 +266,45 @@ export default function CreateArticle() {
       case 'heading': insertText('### '); break;
       case 'quote': insertText('> '); break;
       case 'link':
-        const url = window.prompt('Enter URL:');
-        if (url) insertText('[', `](${url})`);
+        openInput('Insert Link URL', 'https://...', (url) => {
+          if (url) insertText('[', `](${url})`);
+        });
         break;
       case 'image':
         openMediaModal('editor');
         break;
       case 'youtube':
-        const vidUrl = window.prompt('Enter YouTube URL:');
-        if (vidUrl) insertText(`\n<iframe width="560" height="315" src="${vidUrl.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe>\n`);
+        openInput('Insert YouTube URL', 'https://youtube.com/watch?v=...', (vidUrl) => {
+          if (vidUrl) insertText(`\n<iframe width="560" height="315" src="${vidUrl.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe>\n`);
+        });
         break;
       case 'embed':
         handleEmbed();
+        break;
+      case 'codepen':
+        openInput('Enter CodePen URL', 'https://codepen.io/user/pen/slug', (cpUrl) => {
+          if (cpUrl) {
+            let embedUrl = cpUrl;
+            if (cpUrl.includes('/pen/')) {
+              embedUrl = cpUrl.replace('/pen/', '/embed/').split('?')[0];
+              embedUrl += "?default-tab=html%2Cresult";
+            }
+            const embedCode = `\n<iframe height="300" style="width: 100%;" scrolling="no" title="CodePen Embed" src="${embedUrl}" frameborder="no" loading="lazy" allowtransparency="true"></iframe>\n`;
+            insertText(embedCode);
+          }
+        });
+        break;
+      case 'jsfiddle':
+        openInput('Enter JSFiddle URL', 'https://jsfiddle.net/user/slug/', (jsUrl) => {
+          if (jsUrl) {
+            let embedUrl = jsUrl;
+            if (!embedUrl.endsWith('/')) embedUrl += '/';
+            if (!embedUrl.includes('embedded')) embedUrl += 'embedded/';
+
+            const embedCode = `\n<iframe style="width: 100%; height: 300px; border: 1px solid #ddd;" src="${embedUrl}" allowfullscreen="allowfullscreen" frameborder="0"></iframe>\n`;
+            insertText(embedCode);
+          }
+        });
         break;
       case 'code': insertText('`', '`'); break;
       case 'list': insertText('\n- '); break;
@@ -242,6 +318,15 @@ export default function CreateArticle() {
   return (
     <>
       <Title>New Article | DAKOTA ADMIN</Title>
+
+      <InputModal
+        isOpen={inputModalOpen()}
+        onClose={() => setInputModalOpen(false)}
+        onSubmit={inputModalConfig().onSubmit}
+        title={inputModalConfig().title}
+        placeholder={inputModalConfig().placeholder}
+      />
+
       <input
         type="file"
         ref={fileInputRef}
@@ -294,12 +379,39 @@ export default function CreateArticle() {
               <button onClick={() => handleToolbar('link')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="Link (Ctrl+K)"><Link class="w-4 h-4" /></button>
               <button onClick={() => handleToolbar('image')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="Media Library"><ImageIcon class="w-4 h-4" /></button>
               <button onClick={() => handleToolbar('youtube')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="YouTube"><Youtube class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('embed')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="Embed Code"><Box class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('embed')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="Generic Embed"><Box class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('codepen')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="CodePen"><span class="font-bold text-xs">CP</span></button>
+              <button onClick={() => handleToolbar('jsfiddle')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="JSFiddle"><span class="font-bold text-xs">JS</span></button>
               <div class="w-px h-6 bg-accent mx-2 self-center"></div>
               <button onClick={() => handleToolbar('code')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="Code"><Code class="w-4 h-4" /></button>
               <button onClick={() => handleToolbar('list')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="List"><List class="w-4 h-4" /></button>
               <button onClick={() => handleToolbar('table')} class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="Table"><TableIcon class="w-4 h-4" /></button>
+              <div class="w-px h-6 bg-accent mx-2 self-center"></div>
+
+              <DatePicker
+                class="w-auto self-center"
+                mode="range"
+                value={toolbarDateRange()}
+                trigger={
+                  <button class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors" title="Insert Date Range">
+                    <Calendar class="w-4 h-4" />
+                  </button>
+                }
+                onChange={(val) => {
+                  const range = val as { start: Date | null, end: Date | null };
+                  setToolbarDateRange(range);
+                  if (range.start && range.end) {
+                    const startStr = range.start.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+                    const endStr = range.end.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+                    insertText(`${startStr} - ${endStr}`);
+                    // Optional: clear selection after a delay so it's fresh next time
+                    setTimeout(() => setToolbarDateRange({ start: null, end: null }), 200);
+                  }
+                }}
+              />
+
               <div class="flex-1"></div>
+
               <Show when={isUploading()}>
                 <span class="text-xs font-mono font-bold text-accent animate-pulse mr-4 self-center">UPLOADING...</span>
               </Show>
@@ -337,27 +449,39 @@ export default function CreateArticle() {
             </h3>
 
             <div class="space-y-4">
-              <div class="flex items-center justify-between group">
+              <div class="flex flex-col gap-2 group">
                 <span class="font-mono text-xs font-bold uppercase text-neutral-500">Status</span>
-                <select class="bg-transparent border-b-2 border-accent font-oswald font-bold uppercase text-foreground focus:border-primary outline-none cursor-pointer">
-                  <option>Draft</option>
-                  <option>Published</option>
-                  <option>Scheduled</option>
-                </select>
+                <SearchableSelect
+                  options={[
+                    { label: "DRAFT", value: "draft" },
+                    { label: "PUBLISHED", value: "published" },
+                    { label: "SCHEDULED", value: "scheduled" }
+                  ]}
+                  value={status()}
+                  onChange={setStatus}
+                  placeholder="SELECT STATUS"
+                />
               </div>
-              <div class="flex items-center justify-between group">
+              <div class="flex flex-col gap-2 group">
                 <span class="font-mono text-xs font-bold uppercase text-neutral-500">Visibility</span>
-                <select class="bg-transparent border-b-2 border-accent font-oswald font-bold uppercase text-foreground focus:border-primary outline-none cursor-pointer">
-                  <option>Public</option>
-                  <option>Private</option>
-                  <option>Members Only</option>
-                </select>
+                <SearchableSelect
+                  options={[
+                    { label: "PUBLIC", value: "public" },
+                    { label: "PRIVATE", value: "private" },
+                    { label: "MEMBERS ONLY", value: "members" }
+                  ]}
+                  value={visibility()}
+                  onChange={setVisibility}
+                  placeholder="SELECT VISIBILITY"
+                />
               </div>
-              <div class="flex items-center justify-between group">
+              <div class="flex flex-col gap-2 group">
                 <span class="font-mono text-xs font-bold uppercase text-neutral-500">Schedule</span>
-                <button class="flex items-center gap-2 text-xs font-bold uppercase hover:text-primary transition-colors text-foreground">
-                  <Calendar class="w-3 h-3" /> Immediately
-                </button>
+                <DatePicker
+                  value={scheduledDate()}
+                  onChange={setScheduledDate}
+                  placeholder="PICK A DATE"
+                />
               </div>
             </div>
           </div>
@@ -366,22 +490,22 @@ export default function CreateArticle() {
           <div class="bg-background border-2 border-accent p-6">
             <h3 class="font-oswald text-xl font-bold uppercase italic mb-6">Tags</h3>
             <div class="flex flex-wrap gap-2 mb-4">
-              <span class="px-2 py-1 bg-accent/20 border border-accent text-[10px] font-mono font-bold uppercase flex items-center gap-1 text-foreground">
-                Brutalism <button class="hover:text-red-500"><X class="w-3 h-3" /></button>
-              </span>
-              <span class="px-2 py-1 bg-accent/20 border border-accent text-[10px] font-mono font-bold uppercase flex items-center gap-1 text-foreground">
-                Design <button class="hover:text-red-500"><X class="w-3 h-3" /></button>
-              </span>
+              <For each={tags()}>
+                {(tag) => (
+                  <span class="px-2 py-1 bg-accent/20 border border-accent text-[10px] font-mono font-bold uppercase flex items-center gap-1 text-foreground">
+                    {tag}
+                    <button onClick={() => removeTag(tag)} class="hover:text-red-500"><X class="w-3 h-3" /></button>
+                  </span>
+                )}
+              </For>
             </div>
             <div class="relative">
-              <input
-                type="text"
+              <SearchableSelect
+                options={availableTags.filter(t => !tags().includes(t.value))}
+                onChange={addTag}
                 placeholder="ADD TAG..."
-                class="w-full bg-transparent border-2 border-accent p-2 text-xs font-bold uppercase text-foreground focus:border-primary outline-none placeholder-neutral-500"
               />
-              <button class="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary hover:text-white">
-                <Plus class="w-4 h-4" />
-              </button>
+              <div class="mt-2 text-[10px] text-neutral-500 font-mono">* Select to add</div>
             </div>
           </div>
 
