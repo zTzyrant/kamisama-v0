@@ -73,7 +73,7 @@ export default function CreateArticle() {
   const [inputModalConfig, setInputModalConfig] = createSignal({
     title: '',
     placeholder: '',
-    onSubmit: (value: string) => {}
+    onSubmit: (value: string) => { }
   });
 
   // Article Meta State
@@ -600,9 +600,8 @@ export default function CreateArticle() {
         const slug = url.split('/').pop();
         // Remove query params if any in slug, though usually robust logic handles it.
         // The replace logic below handles the URL structure.
-        embedCode = `\n<iframe height="300" style="width: 100%;" scrolling="no" title="CodePen Embed" src="${
-          url.replace('/pen/', '/embed/').split('?')[0]
-        }?default-tab=result" frameborder="no" allowtransparency="true" allowfullscreen="true"></iframe>\n`;
+        embedCode = `\n<iframe height="300" style="width: 100%;" scrolling="no" title="CodePen Embed" src="${url.replace('/pen/', '/embed/').split('?')[0]
+          }?default-tab=result" frameborder="no" allowtransparency="true" allowfullscreen="true"></iframe>\n`;
       } else if (url.includes('codesandbox.io')) {
         embedCode = `\n<iframe src="${url.replace(
           '/s/',
@@ -1018,6 +1017,7 @@ export default function CreateArticle() {
                 <DatePicker
                   value={scheduledDate()}
                   onChange={setScheduledDate}
+                  position='center'
                   placeholder="PICK A DATE"
                 />
               </div>
@@ -1214,31 +1214,28 @@ export default function CreateArticle() {
                     <div class="flex gap-2">
                       <button
                         onClick={() => setImgWidth('100%')}
-                        class={`flex-1 py-1 text-xs border ${
-                          imgWidth() === '100%'
-                            ? 'bg-primary text-black border-primary'
-                            : 'border-accent text-neutral-500'
-                        }`}
+                        class={`flex-1 py-1 text-xs border ${imgWidth() === '100%'
+                          ? 'bg-primary text-black border-primary'
+                          : 'border-accent text-neutral-500'
+                          }`}
                       >
                         Full
                       </button>
                       <button
                         onClick={() => setImgWidth('50%')}
-                        class={`flex-1 py-1 text-xs border ${
-                          imgWidth() === '50%'
-                            ? 'bg-primary text-black border-primary'
-                            : 'border-accent text-neutral-500'
-                        }`}
+                        class={`flex-1 py-1 text-xs border ${imgWidth() === '50%'
+                          ? 'bg-primary text-black border-primary'
+                          : 'border-accent text-neutral-500'
+                          }`}
                       >
                         50%
                       </button>
                       <button
                         onClick={() => setImgWidth('25%')}
-                        class={`flex-1 py-1 text-xs border ${
-                          imgWidth() === '25%'
-                            ? 'bg-primary text-black border-primary'
-                            : 'border-accent text-neutral-500'
-                        }`}
+                        class={`flex-1 py-1 text-xs border ${imgWidth() === '25%'
+                          ? 'bg-primary text-black border-primary'
+                          : 'border-accent text-neutral-500'
+                          }`}
                       >
                         25%
                       </button>
@@ -1258,33 +1255,30 @@ export default function CreateArticle() {
                     <div class="flex gap-2">
                       <button
                         onClick={() => setImgAlign('left')}
-                        class={`p-2 border ${
-                          imgAlign() === 'left'
-                            ? 'bg-primary text-black border-primary'
-                            : 'border-accent text-neutral-500'
-                        }`}
+                        class={`p-2 border ${imgAlign() === 'left'
+                          ? 'bg-primary text-black border-primary'
+                          : 'border-accent text-neutral-500'
+                          }`}
                         title="Left"
                       >
                         <AlignLeft class="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setImgAlign('center')}
-                        class={`p-2 border ${
-                          imgAlign() === 'center'
-                            ? 'bg-primary text-black border-primary'
-                            : 'border-accent text-neutral-500'
-                        }`}
+                        class={`p-2 border ${imgAlign() === 'center'
+                          ? 'bg-primary text-black border-primary'
+                          : 'border-accent text-neutral-500'
+                          }`}
                         title="Center"
                       >
                         <AlignCenter class="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setImgAlign('right')}
-                        class={`p-2 border ${
-                          imgAlign() === 'right'
-                            ? 'bg-primary text-black border-primary'
-                            : 'border-accent text-neutral-500'
-                        }`}
+                        class={`p-2 border ${imgAlign() === 'right'
+                          ? 'bg-primary text-black border-primary'
+                          : 'border-accent text-neutral-500'
+                          }`}
                         title="Right"
                       >
                         <AlignRight class="w-4 h-4" />
