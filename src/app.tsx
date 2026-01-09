@@ -31,7 +31,7 @@ export default function App() {
   return (
     <MetaProvider>
       <Link
-        href="https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&family=Inter:wght@400;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Oswald:wght@200..900&family=Inter:wght@400;600&display=swap"
         rel="stylesheet"
       />
       <Router

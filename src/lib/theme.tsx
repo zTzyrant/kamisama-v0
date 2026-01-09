@@ -1,6 +1,6 @@
 import { createSignal, createEffect } from 'solid-js';
 
-export type Theme = 'dark' | 'light' | 'rebel';
+export type Theme = 'dark' | 'light' | 'rebel' | 'system';
 
 const getStoredTheme = (): Theme | null => {
   if (typeof window !== 'undefined') {
@@ -9,8 +9,10 @@ const getStoredTheme = (): Theme | null => {
   return null;
 };
 
-const [theme, setTheme] = createSignal<Theme>((getStoredTheme() as Theme) || 'dark');
+const [theme, setTheme] = createSignal<Theme>((getStoredTheme() as Theme) || 'system');
 
+export const getTheme = theme;
+export { setTheme };
 export const currentTheme = theme;
 
 export const cycleTheme = () => {

@@ -1,9 +1,13 @@
 import { A } from '@solidjs/router';
-import { createSignal, createEffect, onCleanup } from 'solid-js';
-import { Menu, X } from 'lucide-solid';
+import { createSignal, createEffect, onCleanup, Show } from 'solid-js';
+import { Menu, X, Sun, Moon, Skull, Monitor } from 'lucide-solid';
+import ThemeModal from '~/components/ui/ThemeModal';
+import { currentTheme } from '~/lib/theme';
 
 export default function Nav() {
   const [isOpen, setIsOpen] = createSignal(false);
+  const [isThemeOpen, setIsThemeOpen] = createSignal(false);
+  const theme = currentTheme;
 
   const toggle = () => setIsOpen(!isOpen());
 
@@ -27,11 +31,30 @@ export default function Nav() {
         </div>
 
         {/* Desktop Menu */}
-        <ul class="hidden md:flex gap-12 font-medium tracking-wide text-xs uppercase text-white">
+        <ul class="hidden md:flex gap-12 font-medium tracking-wide text-xs uppercase text-white items-center">
           <li>
             <A href="/" class="hover:text-primary transition-colors">
               Work
             </A>
+          </li>
+          <li>
+            <button
+              onClick={() => setIsThemeOpen(true)}
+              class="w-10 h-10 flex items-center justify-center border-2 border-white hover:bg-white hover:text-black transition-all duration-300 transform hover:scale-105"
+              title={`Change Theme (Current: ${theme()})`}
+            >
+              <Show when={theme() === 'light'} fallback={
+                <Show when={theme() === 'dark'} fallback={
+                  <Show when={theme() === 'rebel'} fallback={<Monitor size={20} />}>
+                    <Skull size={20} />
+                  </Show>
+                }>
+                  <Moon size={20} />
+                </Show>
+              }>
+                <Sun size={20} />
+              </Show>
+            </button>
           </li>
           <li>
             <A href="/about" class="hover:text-primary transition-colors">
@@ -62,11 +85,10 @@ export default function Nav() {
 
       {/* Mobile Overlay */}
       <div
-        class={`fixed inset-0 z-40 bg-black flex flex-col items-center justify-center transition-all duration-500 ease-in-out ${
-          isOpen()
-            ? 'opacity-100 pointer-events-auto translate-y-0'
-            : 'opacity-0 pointer-events-none -translate-y-full'
-        }`}
+        class={`fixed inset-0 z-40 bg-black flex flex-col items-center justify-center transition-all duration-500 ease-in-out ${isOpen()
+          ? 'opacity-100 pointer-events-auto translate-y-0'
+          : 'opacity-0 pointer-events-none -translate-y-full'
+          }`}
       >
         <nav class="flex flex-col gap-8 text-center">
           <A
@@ -76,6 +98,12 @@ export default function Nav() {
           >
             Work
           </A>
+          <button
+            onClick={() => { toggle(); setIsThemeOpen(true); }}
+            class="text-4xl font-oswald uppercase text-white hover:text-primary transition-colors transform hover:scale-105 duration-300"
+          >
+            Image Changer
+          </button>
           <A
             href="/about"
             onClick={toggle}
@@ -99,6 +127,8 @@ export default function Nav() {
           </A>
         </nav>
       </div>
+
+      <ThemeModal isOpen={isThemeOpen()} onClose={() => setIsThemeOpen(false)} />
     </>
   );
 }

@@ -22,7 +22,7 @@ export default function TechStack() {
 
       <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12">
         <div class="md:col-span-4">
-          <h2 class="font-oswald text-5xl text-white uppercase leading-none sticky top-32">
+          <h2 class="font-oswald text-5xl text-foreground uppercase leading-none sticky top-32">
             Tech
             <br />
             Stack

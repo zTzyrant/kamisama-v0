@@ -38,10 +38,10 @@ export default function Hero() {
           <span class="h-px w-12 bg-primary"></span>
         </div>
 
-        <h1 class="font-oswald font-bold text-[15vw] leading-[0.8] tracking-tighter uppercase text-foreground mix-blend-overlay selection:bg-primary selection:text-black">
+        <h1 class="font-oswald font-black text-[15vw] leading-[0.8] tracking-tighter uppercase text-foreground selection:bg-primary selection:text-black drop-shadow-2xl">
           DAKOPI
           <br />
-          <span class="text-primary">STUDIO</span>
+          <span class="text-transparent bg-clip-text bg-gradient-to-b from-primary to-primary/50 text-stroke-black">STUDIO</span>
         </h1>
 
         {/* Abstract Liquid Image */}
