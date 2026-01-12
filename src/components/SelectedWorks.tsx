@@ -1,24 +1,10 @@
 import { For, onMount } from 'solid-js';
 import { ArrowRight } from 'lucide-solid';
 import { animate, stagger } from 'motion';
+import siteData from '~/data/site.json';
 
 export default function SelectedWorks() {
-  const works = [
-    { title: 'Neon Flux', category: 'E-Commerce / Web3', id: '01' },
-    {
-      title: 'Void Scape',
-      category: 'Portfolio / Three.js',
-      id: '02',
-      mt: 'lg:mt-24'
-    },
-    { title: 'Mono Type', category: 'Editorial / Archive', id: '03' },
-    {
-      title: 'Grid Lock',
-      category: 'Agency / Branding',
-      id: '04',
-      mt: 'lg:mt-24'
-    }
-  ];
+  const works = siteData.projects;
 
   let containerRef: HTMLDivElement | undefined;
 
@@ -80,8 +66,9 @@ export default function SelectedWorks() {
           <For each={works}>
             {(work) => (
               <div
-                class={`group relative cursor-pointer work-item opacity-0 ${work.mt || ''
-                  }`}
+                class={`group relative cursor-pointer work-item opacity-0 ${
+                  work.mt || ''
+                }`}
               >
                 <div class="relative aspect-4/3 bg-surface overflow-hidden mb-6 border border-accent">
                   <div class="absolute inset-0 bg-accent/20 group-hover:scale-105 transition-transform duration-700 ease-out flex items-center justify-center text-accent text-9xl font-oswald opacity-20">

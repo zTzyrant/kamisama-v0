@@ -1,3 +1,4 @@
+import siteData from '~/data/site.json';
 import { onMount, onCleanup } from 'solid-js';
 import { Title } from '@solidjs/meta';
 import { animate } from 'motion';
@@ -42,7 +43,7 @@ function reveal(el: HTMLElement) {
 export default function Home() {
   return (
     <main class="w-full relative min-h-screen bg-background">
-      <Title>DAKOPI STUDIO</Title>
+      <Title>{siteData.title}</Title>
 
       <Hero />
 

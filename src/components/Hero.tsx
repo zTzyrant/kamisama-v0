@@ -1,5 +1,6 @@
 import { createSignal, onMount, onCleanup } from 'solid-js';
 import { animate } from 'motion';
+import siteData from '~/data/site.json';
 
 export default function Hero() {
   const [scrollY, setScrollY] = createSignal(0);
@@ -33,7 +34,7 @@ export default function Hero() {
         <div class="mb-4 flex items-center gap-4">
           <span class="h-px w-12 bg-primary"></span>
           <span class="text-primary uppercase tracking-[0.3em] text-[10px] md:text-xs font-bold">
-            Digital Experiences
+            {siteData.tagline}
           </span>
           <span class="h-px w-12 bg-primary"></span>
         </div>
@@ -41,7 +42,9 @@ export default function Hero() {
         <h1 class="font-oswald font-black text-[15vw] leading-[0.8] tracking-tighter uppercase text-foreground selection:bg-primary selection:text-black drop-shadow-2xl">
           DAKOPI
           <br />
-          <span class="text-transparent bg-clip-text bg-gradient-to-b from-primary to-primary/50 text-stroke-black">STUDIO</span>
+          <span class="text-transparent bg-clip-text bg-linear-to-b from-primary to-primary/50 text-stroke-black">
+            STUDIO
+          </span>
         </h1>
 
         {/* Abstract Liquid Image */}
@@ -58,8 +61,7 @@ export default function Hero() {
 
         <div class="mt-12 max-w-2xl mx-auto">
           <p class="text-lg md:text-xl text-neutral-400 font-light leading-relaxed">
-            Redefining boundaries in digital design. We craft heavy hitting
-            interfaces with a smooth finish.
+            {siteData.heroSubtitle}
             <span class="text-white font-medium"> Built for the bold.</span>
           </p>
         </div>

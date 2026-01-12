@@ -1,0 +1,48 @@
+{
+  "name": "Dakopi",
+  "title": "DAKOPI STUDIO",
+  "navBrand": "Dakopi™",
+  "blogTitle": "DAKOPI",
+  "blogSuffix": "BLOG",
+  "dashboardTitle": "Dakopi",
+  "dashboardUser": "Dakota Johnson",
+  "dashboardRole": "Administrator",
+  "tagline": "I can create websites, build bots, and perform penetration tests.",
+  "role": "Full-stack Website Developer",
+  "bio": "A dual-degree Information Systems/Technology student (ITB STIKOM Bali & HELP University Malaysia) with a strong foundation in dynamic user experiences and multi-language development. Focused on creating efficient, scalable web applications.",
+  "heroTitle": "FULL-STACK WEBSITE DEVELOPER",
+  "heroSubtitle": "Specializing in dynamic user experiences and scalable applications.",
+  "socials": {
+    "linkedin": "https://www.linkedin.com/in/ztzyrant/",
+    "github": "https://github.com/ztzyrant",
+    "web": "https://me-zein.web.app/"
+  },
+  "projects": [
+    {
+      "title": "Promo Tourism System",
+      "category": "Web Platform",
+      "id": "01",
+      "description": "A comprehensive platform for managing tourism and travel promotions."
+    },
+    {
+      "title": "KLS Bali Estate",
+      "category": "Architecture / Design",
+      "id": "02",
+      "mt": "lg:mt-24",
+      "description": "A professional website for an architecture and landscape design firm."
+    },
+    {
+      "title": "Online Printing System",
+      "category": "E-Commerce / Service",
+      "id": "03",
+      "description": "A service-oriented web application for managing print orders and custom products."
+    },
+    {
+      "title": "kamisama-v0",
+      "category": "TypeScript / Creative",
+      "id": "04",
+      "mt": "lg:mt-24",
+      "description": "A TypeScript-based creative project."
+    }
+  ]
+}

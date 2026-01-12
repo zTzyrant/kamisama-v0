@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer class="bg-primary text-black pt-16 pb-8 px-6 rounded-t-[2rem] md:rounded-t-[4rem] relative -mt-10 z-30">
+    <footer class="bg-primary selection:bg-black selection:text-white text-black pt-16 pb-8 px-6 rounded-t-4xl md:rounded-t-[4rem] relative -mt-10 z-30">
       <div class="max-w-7xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-start mb-20">
           <div>
@@ -64,7 +64,7 @@ export default function Footer() {
         </div>
 
         <div class="mt-12 w-full overflow-hidden">
-          <h2 class="font-oswald font-bold text-[14vw] leading-none tracking-tighter text-center opacity-10 select-none pointer-events-none">
+          <h2 class="font-oswald font-bold text-[14vw] leading-none tracking-tighter text-center opacity-10">
             DAKOPI
           </h2>
         </div>

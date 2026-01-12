@@ -4,6 +4,7 @@ import { Search, Moon, Sun, Zap, Menu, X } from 'lucide-solid';
 import { currentTheme, cycleTheme } from '~/lib/theme';
 import { Show, createSignal, For } from 'solid-js';
 import { Portal } from 'solid-js/web';
+import siteData from '~/data/site.json';
 
 const NAV_ITEMS = [
   { label: 'Articles', href: '/blog' },
@@ -22,10 +23,10 @@ export default function BlogHeader() {
         {/* Logo */}
         <div class="flex items-center gap-2 relative z-50">
           <span class="bg-foreground text-background px-2 py-0.5 font-oswald font-black text-2xl italic tracking-tighter">
-            DAKOPI
+            {siteData.blogTitle}
           </span>
           <span class="font-oswald font-black text-2xl text-foreground">
-            BLOG
+            {siteData.blogSuffix}
           </span>
         </div>
 

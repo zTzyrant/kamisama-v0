@@ -1,3 +1,5 @@
+import siteData from '~/data/site.json';
+
 export default function Manifesto() {
   return (
     <section class="bg-background py-24 px-6 relative z-10">
@@ -16,9 +18,7 @@ export default function Manifesto() {
           </div>
           <div class="space-y-6">
             <p class="text-neutral-500 font-medium text-lg leading-relaxed">
-              Just like a high-performance vehicle, our designs are tuned for
-              speed, impact, and precision. We strip away the unnecessary to
-              reveal the essential core of your brand's digital identity.
+              {siteData.bio}
             </p>
             <a
               href="#"

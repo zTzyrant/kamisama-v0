@@ -61,6 +61,11 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+::selection {
+  background-color: var(--primary);
+  color: black;
+}
+
 h1,
 h2,
 h3,
