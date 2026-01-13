@@ -302,7 +302,7 @@ export default function DatePicker(props: DatePickerProps) {
                       handleDateClick(day as number, offset);
                     }}
                     class={clsx(
-                      'w-full h-full flex items-center justify-center rounded-sm font-mono text-sm transition-all duration-200',
+                      'w-full h-full flex items-center justify-center font-mono text-sm transition-all duration-200',
                       isSelected(day as number, offset)
                         ? 'bg-primary text-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)] transform scale-105'
                         : isInRange(day as number, offset)
@@ -342,7 +342,7 @@ export default function DatePicker(props: DatePickerProps) {
         <Show when={!props.trigger} fallback={props.trigger}>
           <div
             class={clsx(
-              'flex items-center justify-between w-full px-4 py-3 bg-background border-2 border-accent cursor-pointer transition-all',
+              'flex items-center justify-between w-full px-4 py-3 bg-background border-4 border-black cursor-pointer transition-all',
               'hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]',
               isOpen()
                 ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]'
@@ -381,7 +381,7 @@ export default function DatePicker(props: DatePickerProps) {
         <div
           ref={calendarRef}
           class={clsx(
-            'z-50 bg-background border-2 border-accent animate-in fade-in zoom-in-95 duration-200',
+            'z-50 bg-background border-4 border-black animate-in fade-in zoom-in-95 duration-200',
 
             // Popup Mode (for range when overflow detected)
             usePopup() && props.mode === 'range' && clsx(

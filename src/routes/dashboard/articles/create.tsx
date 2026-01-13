@@ -1,5 +1,6 @@
-import { createSignal, createEffect, Show, For, onCleanup } from 'solid-js';
+import { createSignal, createEffect, Show, For, onCleanup, onMount } from 'solid-js';
 import { Title } from '@solidjs/meta';
+import { useNavigate } from '@solidjs/router';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import {
@@ -32,6 +33,7 @@ import DatePicker from '~/components/ui/DatePicker';
 import Kbd from '~/components/ui/Kbd';
 import TableOfContents from '~/components/TableOfContents';
 import { extractHeadings, slugify, type TocItem } from '~/lib/toc';
+import { articlesApi } from '~/lib/api';
 
 marked.setOptions({
   breaks: true,
@@ -39,8 +41,16 @@ marked.setOptions({
 });
 
 export default function CreateArticle() {
+  const navigate = useNavigate();
+
+  // API State
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
+  const [availableApiTags, setAvailableApiTags] = createSignal<any[]>([]);
+
   const [content, setContent] = createSignal('');
   const [title, setTitle] = createSignal('');
+  const [excerpt, setExcerpt] = createSignal('');
   const [isPreviewOpen, setIsPreviewOpen] = createSignal(false);
   const [htmlContent, setHtmlContent] = createSignal('');
   const [tocHeadings, setTocHeadings] = createSignal<TocItem[]>([]);
@@ -82,30 +92,44 @@ export default function CreateArticle() {
   const [scheduledDate, setScheduledDate] = createSignal<Date | null>(
     new Date()
   );
-  const [tags, setTags] = createSignal<string[]>(['Brutalism', 'Design']);
+  const [selectedTags, setSelectedTags] = createSignal<string[]>([]);
   const [toolbarDateRange, setToolbarDateRange] = createSignal<{
     start: Date | null;
     end: Date | null;
   }>({ start: null, end: null });
 
-  const availableTags = [
-    { label: 'BRUTALISM', value: 'Brutalism' },
-    { label: 'DESIGN', value: 'Design' },
-    { label: 'DEVELOPMENT', value: 'Development' },
-    { label: 'TUTORIAL', value: 'Tutorial' },
-    { label: 'NEWS', value: 'News' },
-    { label: 'SOLIDJS', value: 'SolidJS' },
-    { label: 'TAILWIND', value: 'Tailwind' }
-  ];
+  // Load tags from API
+  onMount(async () => {
+    try {
+      const res = await articlesApi.getTags();
+      if (res.data.status === 'success') {
+        setAvailableApiTags(res.data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch tags", err);
+    }
+  });
 
-  const addTag = (tag: string) => {
-    if (tag && !tags().includes(tag)) {
-      setTags([...tags(), tag]);
+  const availableTags = () => {
+    return availableApiTags().map(tag => ({
+      label: tag.name.toUpperCase(),
+      value: tag.id
+    }));
+  };
+
+  const addTag = (tagId: string) => {
+    if (tagId && !selectedTags().includes(tagId)) {
+      setSelectedTags([...selectedTags(), tagId]);
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setTags(tags().filter((t) => t !== tagToRemove));
+    setSelectedTags(selectedTags().filter((t) => t !== tagToRemove));
+  };
+
+  const getTagName = (tagId: string) => {
+    const tag = availableApiTags().find(t => t.id === tagId);
+    return tag ? tag.name : tagId;
   };
 
   // Dummy Media Items
@@ -145,7 +169,7 @@ export default function CreateArticle() {
   let textareaRef: HTMLTextAreaElement | undefined;
   let fileInputRef: HTMLInputElement | undefined;
 
-  // Scroll Lock Efffect
+  // Scroll Lock Effect
   createEffect(() => {
     if (typeof document !== 'undefined') {
       if (
@@ -192,7 +216,6 @@ export default function CreateArticle() {
       setHistoryIndex(newIndex);
       const newContent = history()[newIndex];
       setContent(newContent);
-      // We need to update the textarea value manually if it's referenced
       if (textareaRef) textareaRef.value = newContent;
     }
   };
@@ -278,19 +301,16 @@ export default function CreateArticle() {
     }, 0);
   };
 
-  // Helper to insert whole line styling or block element
   const insertBlock = (prefix: string, suffix: string = '') => {
     if (!textareaRef) return;
     const start = textareaRef.selectionStart;
     const end = textareaRef.selectionEnd;
     const text = textareaRef.value;
 
-    // Find start of line
     let lineStart = text.lastIndexOf('\n', start - 1);
     if (lineStart === -1) lineStart = 0;
-    else lineStart += 1; // skip \n
+    else lineStart += 1;
 
-    // Find end of line
     let lineEnd = text.indexOf('\n', end);
     if (lineEnd === -1) lineEnd = text.length;
 
@@ -305,7 +325,6 @@ export default function CreateArticle() {
     setTimeout(() => {
       if (textareaRef) {
         textareaRef.focus();
-        // Try to keep cursor position relative to content or move to end of inserted block
         textareaRef.setSelectionRange(
           lineStart + newLineContent.length,
           lineStart + newLineContent.length
@@ -319,7 +338,6 @@ export default function CreateArticle() {
     const start = textareaRef.selectionStart;
     const text = textareaRef.value;
 
-    // Find current line bounds
     let lineStart = text.lastIndexOf('\n', start - 1);
     if (lineStart === -1) lineStart = 0;
     else lineStart += 1;
@@ -330,18 +348,13 @@ export default function CreateArticle() {
     const currentLine = text.substring(lineStart, lineEnd);
 
     if (direction === 'up') {
-      if (lineStart === 0) return; // Top of file
+      if (lineStart === 0) return;
 
       let prevLineStart = text.lastIndexOf('\n', lineStart - 2);
       if (prevLineStart === -1) prevLineStart = 0;
       else prevLineStart += 1;
 
-      const prevLine = text.substring(prevLineStart, lineStart - 1); // -1 for \n
-
-      // Construct new text
-      // ... [prevLine] \n [currentLine] ...
-      // to
-      // ... [currentLine] \n [prevLine] ...
+      const prevLine = text.substring(prevLineStart, lineStart - 1);
 
       const before = text.substring(0, prevLineStart);
       const after = text.substring(lineEnd);
@@ -349,7 +362,6 @@ export default function CreateArticle() {
       const newText = before + currentLine + '\n' + prevLine + after;
       updateContent(newText);
 
-      // Update cursor
       setTimeout(() => {
         if (textareaRef) {
           const newCursor = prevLineStart + (start - lineStart);
@@ -357,7 +369,7 @@ export default function CreateArticle() {
         }
       }, 0);
     } else {
-      if (lineEnd === text.length) return; // Bottom of file
+      if (lineEnd === text.length) return;
 
       let nextLineEnd = text.indexOf('\n', lineEnd + 1);
       if (nextLineEnd === -1) nextLineEnd = text.length;
@@ -372,7 +384,6 @@ export default function CreateArticle() {
 
       setTimeout(() => {
         if (textareaRef) {
-          // Approximate cursor position: length of nextLine + \n + relative offset
           const newCursor =
             lineStart + nextLine.length + 1 + (start - lineStart);
           textareaRef.setSelectionRange(newCursor, newCursor);
@@ -382,55 +393,41 @@ export default function CreateArticle() {
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    // 1. Text Formatting
     if (e.ctrlKey || e.metaKey) {
       if (!e.shiftKey && !e.altKey) {
         switch (e.key.toLowerCase()) {
-          case 'b': // Bold
+          case 'b':
             e.preventDefault();
             insertText('**', '**');
             break;
-          case 'i': // Italic
+          case 'i':
             e.preventDefault();
             insertText('*', '*');
             break;
-          case 'u': // Underline (not standard md, usually HTML or ignored, skipping based on request but useful to prevent default)
+          case 'u':
             e.preventDefault();
             break;
-          case '\\': // Clear Formatting logic simplified: just clear selection? or remove markers.
-            // For now, let's just allow normal typing or implement a stripper if needed.
-            // User asked for "Clear Formatting: Ctrl + \ (Backtick) or Ctrl + Space"
-            // Note: Backtick is ` and \ is backslash. Request said Ctrl + \ (Backtick) which is confusing.
-            // I will assume Ctrl + \ or Ctrl + Space.
+          case '\\':
             e.preventDefault();
-            // Basic clear: replace selection with its text content (removing md symbols if we parsed it, but here we just have raw text)
-            // A true clear formatting in raw markdown is complex regex.
-            // Let's just do nothing or insert nothing for now to respect the keybind slot.
             console.log('Clear formatting triggered');
             break;
           case ' ':
             if (e.ctrlKey) {
-              // Ctrl + Space
               e.preventDefault();
-              // Logic for clear formatting
             }
             break;
-          case 'z': // Undo
+          case 'z':
             e.preventDefault();
             undo();
             break;
-          case 'y': // Redo
+          case 'y':
             e.preventDefault();
             redo();
-            break;
-          case 'f':
-            // e.preventDefault(); // Let browser default find handle this
             break;
         }
       }
     }
 
-    // Strikethrough (Alt + S or Ctrl + Shift + X)
     if (
       (e.altKey && e.key.toLowerCase() === 's') ||
       (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'x')
@@ -439,7 +436,6 @@ export default function CreateArticle() {
       insertText('~~', '~~');
     }
 
-    // 2. Heading
     if (e.ctrlKey && e.altKey) {
       switch (e.key) {
         case '1':
@@ -466,52 +462,51 @@ export default function CreateArticle() {
           e.preventDefault();
           insertBlock('###### ');
           break;
-        case 'c': // Code Block Ctrl + Alt + C
+        case 'c':
           e.preventDefault();
           insertText('\n```\n', '\n```\n');
           break;
       }
     }
 
-    // 3. Lists
     if (e.ctrlKey && e.shiftKey) {
       switch (e.key) {
-        case '*': // Ctrl + Shift + 8
+        case '*':
         case '8':
           e.preventDefault();
           insertBlock('- ');
           break;
-        case '&': // Ctrl + Shift + 7
+        case '&':
         case '7':
           e.preventDefault();
           insertBlock('1. ');
           break;
-        case 'c': // Check List
+        case 'c':
         case 'C':
           e.preventDefault();
           insertBlock('- [ ] ');
           break;
-        case '(': // Ctrl + Shift + 9 -> Blockquote
+        case '(':
         case '9':
           e.preventDefault();
           insertBlock('> ');
           break;
-        case '_': // Ctrl + Shift + - -> Horizontal Line
+        case '_':
         case '-':
           e.preventDefault();
           insertText('\n---\n');
           break;
-        case 'k': // Code Block Ctrl + Shift + K
+        case 'k':
         case 'K':
           e.preventDefault();
           insertText('\n```\n', '\n```\n');
           break;
-        case 'm': // Math Block
+        case 'm':
         case 'M':
           e.preventDefault();
           insertText('\n$$\n', '\n$$\n');
           break;
-        case 'z': // Redo alternative
+        case 'z':
         case 'Z':
           e.preventDefault();
           redo();
@@ -519,28 +514,20 @@ export default function CreateArticle() {
       }
     }
 
-    // Inline Code: Ctrl + Shift + \ (using simple backtick check might be easier if layout differs) or just logic
-    // Request: Ctrl + Shift + \ (Backtick) -> This is likely valid on US keyboards where ~ is Shift+`
-    // Actually typically Shift + ` is ~. Ctrl + Shift + ` isn't standard mapped to \.
-    // The request says "Ctrl + \ (Backtick)".
-    // Let's try map Ctrl + ` (backtick) for Inline Code.
     if (e.ctrlKey && e.key === '`') {
       e.preventDefault();
       insertText('`', '`');
     }
-    // Also Ctrl + Shift + \ as requested literally
     if (e.ctrlKey && e.shiftKey && e.key === '\\') {
       e.preventDefault();
       insertText('`', '`');
     }
 
-    // 4. Paragraph & Block
     if (e.ctrlKey && e.key === 'Enter') {
       e.preventDefault();
-      insertText('\n\n'); // New Paragraph
+      insertText('\n\n');
     }
 
-    // 7. Navigation
     if (e.altKey) {
       if (e.key === 'ArrowUp') {
         e.preventDefault();
@@ -597,9 +584,6 @@ export default function CreateArticle() {
 
       let embedCode = '';
       if (url.includes('codepen.io')) {
-        const slug = url.split('/').pop();
-        // Remove query params if any in slug, though usually robust logic handles it.
-        // The replace logic below handles the URL structure.
         embedCode = `\n<iframe height="300" style="width: 100%;" scrolling="no" title="CodePen Embed" src="${url.replace('/pen/', '/embed/').split('?')[0]
           }?default-tab=result" frameborder="no" allowtransparency="true" allowfullscreen="true"></iframe>\n`;
       } else if (url.includes('codesandbox.io')) {
@@ -623,7 +607,6 @@ export default function CreateArticle() {
   const openMediaModal = (target: 'editor' | 'featured') => {
     setMediaModalTarget(target);
     setIsMediaModalOpen(true);
-    // Reset Image Options defaults
     setImgWidth('100%');
     setImgAlign('center');
     setImgAlt('');
@@ -631,7 +614,6 @@ export default function CreateArticle() {
 
   const selectMediaItem = (url: string, name: string) => {
     if (mediaModalTarget() === 'editor') {
-      // Generate customized HTML for image
       const alt = imgAlt() || name;
       let style = `width: ${imgWidth()};`;
       let classes = 'block';
@@ -741,6 +723,55 @@ export default function CreateArticle() {
     }
   };
 
+  // Handle Save Draft
+  const handleSaveDraft = async () => {
+    await handleSubmit('draft');
+  };
+
+  // Handle Publish
+  const handlePublish = async () => {
+    await handleSubmit('published');
+  };
+
+  // Submit to API
+  const handleSubmit = async (submitStatus: string) => {
+    setLoading(true);
+    setError(null);
+
+    const payload = {
+      title: title(),
+      content: content(),
+      excerpt: excerpt(),
+      status: submitStatus,
+      visibility: visibility(),
+      tags: selectedTags()
+    };
+
+    try {
+      const res = await articlesApi.create(payload);
+      if (res.data.status === 'success') {
+        navigate('/dashboard/articles');
+      } else {
+        setError(res.data.message || 'Failed to create article');
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.response && err.response.data) {
+        const data = err.response.data;
+        if (Array.isArray(data.data)) {
+          const messages = data.data.map((e: any) => `${e.field}: ${e.message}`).join(', ');
+          setError(messages);
+        } else {
+          setError(data.message || 'An error occurred');
+        }
+      } else {
+        setError('Network error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Title>New Article | DAKOTA ADMIN</Title>
@@ -762,28 +793,43 @@ export default function CreateArticle() {
       />
 
       {/* Header */}
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
         <div>
-          <h1 class="text-5xl md:text-7xl font-oswald font-black italic uppercase leading-none text-foreground">
-            New Article
+          <h1 class="text-5xl md:text-7xl font-oswald font-black uppercase leading-none text-black tracking-tighter">
+            New <span class="bg-primary px-2 transform -skew-x-6 inline-block border-4 border-black">Transmission</span>
           </h1>
         </div>
         <div class="flex gap-4">
-          <button class="bg-background border-2 border-accent text-foreground font-oswald font-bold uppercase py-3 px-6 hover:bg-accent/10 transition-colors">
-            Save Draft
+          <button
+            onClick={handleSaveDraft}
+            disabled={loading()}
+            class="bg-white text-black border-4 border-black font-oswald font-bold uppercase py-3 px-6 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
+          >
+            {loading() && status() === 'draft' ? 'Saving...' : 'Save Draft'}
           </button>
-          <button class="bg-primary text-black border-2 border-primary font-oswald font-bold uppercase py-3 px-6 hover:bg-transparent hover:text-primary transition-colors">
-            Publish Live
+          <button
+            onClick={handlePublish}
+            disabled={loading()}
+            class="bg-black text-white border-4 border-black font-oswald font-bold uppercase py-3 px-6 hover:bg-primary hover:text-black hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
+          >
+            {loading() && status() === 'published' ? 'Publishing...' : 'Publish Live'}
           </button>
         </div>
       </div>
 
-      <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Error Message */}
+      <Show when={error()}>
+        <div class="mb-6 p-4 bg-red-100 border-4 border-red-600 text-red-600 font-bold uppercase text-sm shadow-[4px_4px_0px_0px_#dc2626]">
+          {error()}
+        </div>
+      </Show>
+
+      <main class="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12">
         {/* Editor Area */}
         <div class="lg:col-span-8 flex flex-col gap-8">
           {/* Title Input */}
-          <div class="bg-background border-2 border-accent p-6 group focus-within:border-primary transition-colors">
-            <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2 group-focus-within:text-primary transition-colors">
+          <div class="bg-white border-4 border-black p-6 group shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-transform">
+            <label class="block text-xs font-mono font-bold uppercase text-black mb-2 bg-primary/20 inline-block px-1">
               Article Title
             </label>
             <input
@@ -791,118 +837,54 @@ export default function CreateArticle() {
               placeholder="ENTER TITLE HERE..."
               value={title()}
               onInput={(e) => setTitle(e.currentTarget.value)}
-              class="w-full bg-transparent border-none text-3xl md:text-5xl font-oswald font-bold uppercase text-foreground placeholder-neutral-500 focus:ring-0 outline-none"
+              class="w-full bg-transparent border-b-4 border-black text-3xl md:text-5xl font-oswald font-bold uppercase text-black placeholder-neutral-400 focus:outline-none focus:border-primary py-2"
             />
           </div>
 
+          {/* Excerpt Input */}
+          <div class="bg-white border-4 border-black p-6 group shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <label class="block text-xs font-mono font-bold uppercase text-black mb-2 bg-primary/20 inline-block px-1">
+              Excerpt (Optional)
+            </label>
+            <textarea
+              placeholder="Brief summary of your article..."
+              value={excerpt()}
+              onInput={(e) => setExcerpt(e.currentTarget.value)}
+              class="w-full bg-neutral-100 border-2 border-black p-4 text-base font-mono text-black placeholder-neutral-500 focus:outline-none focus:bg-white resize-none"
+              rows="3"
+            ></textarea>
+          </div>
+
           {/* Markdown Editor */}
-          <div class="flex-1 bg-background border-2 border-accent flex flex-col min-h-[600px] focus-within:border-primary transition-colors">
+          <div class="flex-1 bg-white border-4 border-black flex flex-col min-h-[600px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             {/* Toolbar */}
-            <div class="border-b-2 border-accent p-2 flex flex-wrap gap-2 bg-accent/5">
-              <button
-                onClick={() => handleToolbar('bold')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Bold (Ctrl+B)"
-              >
-                <Bold class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('italic')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Italic (Ctrl+I)"
-              >
-                <Italic class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('heading')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Heading"
-              >
-                <Heading class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('quote')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Quote"
-              >
-                <Quote class="w-4 h-4" />
-              </button>
-              <div class="w-px h-6 bg-accent mx-2 self-center"></div>
-              <button
-                onClick={() => handleToolbar('link')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Link (Ctrl+K)"
-              >
-                <Link class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('image')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Media Library"
-              >
-                <ImageIcon class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('youtube')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="YouTube"
-              >
-                <Youtube class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('embed')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Generic Embed"
-              >
-                <Box class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('codepen')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="CodePen"
-              >
-                <span class="font-bold text-xs">CP</span>
-              </button>
-              <button
-                onClick={() => handleToolbar('jsfiddle')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="JSFiddle"
-              >
-                <span class="font-bold text-xs">JS</span>
-              </button>
-              <div class="w-px h-6 bg-accent mx-2 self-center"></div>
-              <button
-                onClick={() => handleToolbar('code')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Code"
-              >
-                <Code class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('list')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="List"
-              >
-                <List class="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleToolbar('table')}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                title="Table"
-              >
-                <TableIcon class="w-4 h-4" />
-              </button>
-              <div class="w-px h-6 bg-accent mx-2 self-center"></div>
+            <div class="border-b-4 border-black p-2 flex flex-wrap gap-2 bg-neutral-100">
+              <button onClick={() => handleToolbar('bold')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Bold"><Bold class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('italic')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Italic"><Italic class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('heading')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Heading"><Heading class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('quote')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Quote"><Quote class="w-4 h-4" /></button>
+
+              <div class="w-px h-6 bg-black mx-2 self-center"></div>
+
+              <button onClick={() => handleToolbar('link')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Link"><Link class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('image')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Media Library"><ImageIcon class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('youtube')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="YouTube"><Youtube class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('embed')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Embed"><Box class="w-4 h-4" /></button>
+
+              <div class="w-px h-6 bg-black mx-2 self-center"></div>
+
+              <button onClick={() => handleToolbar('code')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Code"><Code class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('list')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="List"><List class="w-4 h-4" /></button>
+              <button onClick={() => handleToolbar('table')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Table"><TableIcon class="w-4 h-4" /></button>
+
+              <div class="w-px h-6 bg-black mx-2 self-center"></div>
 
               <DatePicker
                 class="w-auto self-center"
                 mode="range"
                 value={toolbarDateRange()}
                 trigger={
-                  <button
-                    class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors"
-                    title="Insert Date Range"
-                  >
+                  <button class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Insert Date Range">
                     <Calendar class="w-4 h-4" />
                   </button>
                 }
@@ -910,45 +892,33 @@ export default function CreateArticle() {
                   const range = val as { start: Date | null; end: Date | null };
                   setToolbarDateRange(range);
                   if (range.start && range.end) {
-                    const startStr = range.start.toLocaleDateString('en-US', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    });
-                    const endStr = range.end.toLocaleDateString('en-US', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    });
-                    insertText(`${startStr} - ${endStr}`);
-                    // Optional: clear selection after a delay so it's fresh next time
-                    setTimeout(
-                      () => setToolbarDateRange({ start: null, end: null }),
-                      200
-                    );
+                    const formatDate = (d: Date) => d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+                    insertText(`${formatDate(range.start)} - ${formatDate(range.end)}`);
+                    setTimeout(() => setToolbarDateRange({ start: null, end: null }), 200);
                   }
                 }}
               />
 
               <button
                 onClick={() => setIsShortcutsModalOpen(true)}
-                class="p-2 hover:bg-accent/10 text-neutral-500 hover:text-foreground transition-colors ml-auto"
-                title="Keyboard Shortcuts"
+                class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ml-auto"
+                title="Shortcuts"
               >
                 <Info class="w-4 h-4" />
               </button>
+
               <Show when={isUploading()}>
-                <span class="text-xs font-mono font-bold text-accent animate-pulse mr-4 self-center">
-                  UPLOADING...
-                </span>
+                <span class="text-xs font-mono font-bold text-primary animate-pulse mr-4 self-center uppercase">Uploading...</span>
               </Show>
+
               <button
                 onClick={handlePreview}
-                class="px-4 py-1 bg-accent/10 text-xs font-mono font-bold uppercase text-foreground hover:bg-primary hover:text-black transition-colors flex items-center gap-2"
+                class="px-4 py-1 border-2 border-black bg-primary text-black text-xs font-bold uppercase hover:bg-black hover:text-white transition-colors flex items-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               >
                 <Eye class="w-3 h-3" /> Preview
               </button>
             </div>
+
             {/* Textarea */}
             <textarea
               ref={textareaRef}
@@ -956,16 +926,13 @@ export default function CreateArticle() {
               onInput={(e) => setContent(e.currentTarget.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              class="flex-1 w-full bg-transparent p-6 font-mono text-sm leading-relaxed resize-none outline-none text-foreground placeholder-neutral-500"
+              class="flex-1 w-full bg-white p-6 font-mono text-sm leading-relaxed resize-none outline-none text-black placeholder-neutral-400"
               placeholder="Start writing your masterpiece... (Paste images supported)"
             ></textarea>
-            <div class="border-t-2 border-accent p-2 px-6 flex justify-between items-center bg-accent/5">
-              <span class="text-[10px] font-mono font-bold text-neutral-500 uppercase">
-                Markdown Supported
-              </span>
-              <span class="text-[10px] font-mono font-bold text-neutral-500 uppercase">
-                {content().length} Chars
-              </span>
+
+            <div class="border-t-4 border-black p-2 px-6 flex justify-between items-center bg-neutral-100">
+              <span class="text-[10px] font-mono font-bold text-neutral-500 uppercase">Markdown Supported</span>
+              <span class="text-[10px] font-mono font-bold text-neutral-500 uppercase">{content().length} Chars</span>
             </div>
           </div>
         </div>
@@ -973,22 +940,20 @@ export default function CreateArticle() {
         {/* Sidebar Controls */}
         <div class="lg:col-span-4 flex flex-col gap-6">
           {/* Publish Meta */}
-          <div class="bg-background border-2 border-accent p-6">
-            <h3 class="font-oswald text-xl font-bold uppercase italic mb-6 flex items-center gap-2">
-              <span class="w-2 h-2 bg-primary"></span>
+          <div class="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <h3 class="font-oswald text-xl font-bold uppercase border-b-4 border-black pb-2 mb-6 flex items-center gap-2">
+              <span class="w-3 h-3 bg-primary border-2 border-black"></span>
               Publishing
             </h3>
 
             <div class="space-y-4">
               <div class="flex flex-col gap-2 group">
-                <span class="font-mono text-xs font-bold uppercase text-neutral-500">
-                  Status
-                </span>
+                <span class="font-mono text-xs font-bold uppercase text-neutral-500">Status</span>
                 <SearchableSelect
                   options={[
                     { label: 'DRAFT', value: 'draft' },
                     { label: 'PUBLISHED', value: 'published' },
-                    { label: 'SCHEDULED', value: 'scheduled' }
+                    { label: 'ARCHIVED', value: 'archived' }
                   ]}
                   value={status()}
                   onChange={setStatus}
@@ -996,9 +961,7 @@ export default function CreateArticle() {
                 />
               </div>
               <div class="flex flex-col gap-2 group">
-                <span class="font-mono text-xs font-bold uppercase text-neutral-500">
-                  Visibility
-                </span>
+                <span class="font-mono text-xs font-bold uppercase text-neutral-500">Visibility</span>
                 <SearchableSelect
                   options={[
                     { label: 'PUBLIC', value: 'public' },
@@ -1011,9 +974,7 @@ export default function CreateArticle() {
                 />
               </div>
               <div class="flex flex-col gap-2 group">
-                <span class="font-mono text-xs font-bold uppercase text-neutral-500">
-                  Schedule
-                </span>
+                <span class="font-mono text-xs font-bold uppercase text-neutral-500">Schedule</span>
                 <DatePicker
                   value={scheduledDate()}
                   onChange={setScheduledDate}
@@ -1025,19 +986,14 @@ export default function CreateArticle() {
           </div>
 
           {/* Tags */}
-          <div class="bg-background border-2 border-accent p-6">
-            <h3 class="font-oswald text-xl font-bold uppercase italic mb-6">
-              Tags
-            </h3>
+          <div class="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <h3 class="font-oswald text-xl font-bold uppercase border-b-4 border-black pb-2 mb-6">Tags</h3>
             <div class="flex flex-wrap gap-2 mb-4">
-              <For each={tags()}>
-                {(tag) => (
-                  <span class="px-2 py-1 bg-accent/20 border border-accent text-[10px] font-mono font-bold uppercase flex items-center gap-1 text-foreground">
-                    {tag}
-                    <button
-                      onClick={() => removeTag(tag)}
-                      class="hover:text-red-500"
-                    >
+              <For each={selectedTags()}>
+                {(tagId) => (
+                  <span class="px-2 py-1 bg-black text-white text-[10px] font-mono font-bold uppercase flex items-center gap-1 border-2 border-black">
+                    {getTagName(tagId)}
+                    <button onClick={() => removeTag(tagId)} class="hover:text-primary transition-colors">
                       <X class="w-3 h-3" />
                     </button>
                   </span>
@@ -1046,88 +1002,60 @@ export default function CreateArticle() {
             </div>
             <div class="relative">
               <SearchableSelect
-                options={availableTags.filter((t) => !tags().includes(t.value))}
+                options={availableTags().filter((t) => !selectedTags().includes(t.value))}
                 onChange={addTag}
                 placeholder="ADD TAG..."
               />
-              <div class="mt-2 text-[10px] text-neutral-500 font-mono">
-                * Select to add
-              </div>
             </div>
           </div>
 
           {/* Featured Image */}
-          <div class="bg-background border-2 border-accent p-6">
-            <h3 class="font-oswald text-xl font-bold uppercase italic mb-6">
-              Featured Image
-            </h3>
+          <div class="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <h3 class="font-oswald text-xl font-bold uppercase border-b-4 border-black pb-2 mb-6">Featured Image</h3>
             <div
               onClick={() => openMediaModal('featured')}
-              class="border-2 border-dashed border-neutral-300 dark:border-neutral-700 bg-accent/5 aspect-video flex flex-col items-center justify-center hover:border-primary hover:bg-accent/10 transition-all cursor-pointer group relative overflow-hidden"
+              class="border-4 border-dashed border-neutral-300 bg-neutral-50 aspect-video flex flex-col items-center justify-center hover:border-black hover:bg-primary/20 transition-all cursor-pointer group relative overflow-hidden"
             >
               <Show
                 when={featuredImage()}
                 fallback={
                   <>
-                    <Upload class="w-6 h-6 text-neutral-500 group-hover:text-primary mb-2 transition-colors" />
-                    <span class="font-mono text-[10px] font-bold uppercase text-neutral-500 group-hover:text-foreground transition-colors">
-                      Select from Library
-                    </span>
+                    <Upload class="w-8 h-8 text-neutral-400 group-hover:text-black mb-2 transition-colors" />
+                    <span class="font-mono text-[10px] font-bold uppercase text-neutral-400 group-hover:text-black transition-colors">Select Image</span>
                   </>
                 }
               >
-                <img
-                  src={featuredImage()!}
-                  class="w-full h-full object-cover"
-                />
-                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold uppercase text-xs">
-                  Change
-                </div>
+                <img src={featuredImage()!} class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold uppercase text-xs">Change</div>
               </Show>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Preview Modal (Full Width) */}
+      {/* Preview Modal */}
       <Show when={isPreviewOpen()}>
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-background border-0 w-full h-full overflow-hidden">
-          <div class="w-full h-full flex flex-col relative bg-background">
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm p-4 w-full h-full">
+          <div class="w-full max-w-7xl h-full flex flex-col relative bg-white border-4 border-black shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
             {/* Modal Header */}
-            <div class="h-16 border-b-2 border-accent flex items-center justify-between px-8 bg-surface shrink-0">
-              <h2 class="font-oswald font-bold uppercase italic text-2xl text-foreground">
-                Preview Mode
-              </h2>
-              <button
-                onClick={() => setIsPreviewOpen(false)}
-                class="bg-primary text-black hover:bg-foreground hover:text-background p-2 transition-colors"
-              >
+            <div class="h-16 border-b-4 border-black flex items-center justify-between px-8 bg-neutral-100 shrink-0">
+              <h2 class="font-oswald font-bold uppercase text-2xl text-black">Preview Mode</h2>
+              <button onClick={() => setIsPreviewOpen(false)} class="bg-black text-white hover:bg-primary hover:text-black p-2 border-2 border-black transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]">
                 <X class="w-6 h-6" />
               </button>
             </div>
-            {/* Modal Content */}
-            <div class="flex-1 overflow-y-auto w-full">
-              <div class="max-w-[1600px] mx-auto grid grid-cols-12 gap-8 p-8 md:p-16">
-                {/* Content */}
-                <div class="col-span-12 lg:col-span-9 prose prose-invert prose-lg max-w-none">
-                  <h1 class="font-oswald text-5xl md:text-7xl font-black uppercase italic leading-none text-foreground mb-12 border-b-4 border-primary pb-8">
-                    {title() || 'Untitled Transmission'}
-                  </h1>
+            {/* Content */}
+            <div class="flex-1 overflow-y-auto w-full p-8 md:p-12">
+              <div class="max-w-5xl mx-auto grid grid-cols-12 gap-12">
+                <div class="col-span-12 lg:col-span-9 prose prose-lg max-w-none">
+                  <h1 class="font-oswald text-6xl font-black uppercase leading-none mb-8 pb-4 border-b-8 border-black">{title() || 'Untitled'}</h1>
                   {featuredImage() && (
-                    <img
-                      src={featuredImage()!}
-                      class="w-full max-h-[600px] object-cover mb-12 border-2 border-accent grayscale hover:grayscale-0 transition-all duration-500"
-                    />
+                    <img src={featuredImage()!} class="w-full max-h-[500px] object-cover mb-12 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" />
                   )}
-                  <div
-                    class="text-foreground [&>h1]:font-oswald [&>h1]:font-black [&>h1]:text-4xl [&>h1]:uppercase [&>h1]:mb-6 [&>h1]:scroll-mt-24 [&>h2]:font-oswald [&>h2]:font-bold [&>h2]:text-3xl [&>h2]:uppercase [&>h2]:mb-4 [&>h2]:scroll-mt-24 [&>h3]:font-oswald [&>h3]:font-bold [&>h3]:text-2xl [&>h3]:uppercase [&>h3]:mb-3 [&>h3]:scroll-mt-24 [&>p]:mb-6 [&>p]:leading-loose [&>p]:text-lg [&>pre]:bg-black [&>pre]:p-6 [&>pre]:text-white [&>pre]:border [&>pre]:border-accent [&>pre]:overflow-x-auto [&>blockquote]:border-l-4 [&>blockquote]:border-primary [&>blockquote]:pl-6 [&>blockquote]:italic [&>blockquote]:text-2xl [&>blockquote]:font-serif [&>blockquote]:my-8 [&>img]:border-2 [&>img]:border-accent [&>table]:w-full [&>table]:border-collapse [&>table]:border-2 [&>table]:border-accent [&>th]:border-2 [&>th]:border-accent [&>th]:p-3 [&>th]:bg-accent/10 [&>th]:font-bold [&>th]:uppercase [&>td]:border-2 [&>td]:border-accent [&>td]:p-3"
-                    innerHTML={htmlContent()}
-                  />
+                  <div class="font-mono" innerHTML={htmlContent()} />
                 </div>
-
-                {/* Sidebar (TOC) */}
                 <div class="hidden lg:block col-span-3">
-                  <div class="sticky top-8">
+                  <div class="sticky top-8 border-l-4 border-black pl-6">
                     <TableOfContents headings={tocHeadings()} />
                   </div>
                 </div>
@@ -1139,169 +1067,59 @@ export default function CreateArticle() {
 
       {/* Media Modal */}
       <Show when={isMediaModalOpen()}>
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 md:p-8">
-          <div class="bg-background border-2 border-accent w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl relative">
-            <div class="h-16 border-b-2 border-accent flex items-center justify-between px-6 bg-surface shrink-0">
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8">
+          <div class="bg-white border-4 border-black w-full max-w-6xl h-[90vh] flex flex-col shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] relative">
+            <div class="h-16 border-b-4 border-black flex items-center justify-between px-6 bg-neutral-100 shrink-0">
               <div class="flex items-center gap-4">
-                <h2 class="font-oswald font-bold uppercase italic text-2xl text-foreground">
-                  Select Media
-                </h2>
+                <h2 class="font-oswald font-bold uppercase text-2xl text-black">Media Library</h2>
                 <div class="relative hidden md:block">
-                  <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                  <input
-                    type="text"
-                    placeholder="SEARCH..."
-                    value={mediaSearch()}
-                    onInput={(e) => setMediaSearch(e.currentTarget.value)}
-                    class="bg-background border border-accent pl-10 pr-4 py-1 text-xs font-bold uppercase focus:border-primary outline-none text-foreground w-64"
-                  />
+                  <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-black" />
+                  <input type="text" placeholder="SEARCH..." value={mediaSearch()} onInput={(e) => setMediaSearch(e.currentTarget.value)} class="bg-white border-2 border-black pl-10 pr-4 py-1 text-xs font-bold uppercase focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none w-64 transition-all" />
                 </div>
               </div>
-              <button
-                onClick={() => setIsMediaModalOpen(false)}
-                class="text-neutral-500 hover:text-red-500 transition-colors"
-              >
-                <X class="w-8 h-8" />
-              </button>
+              <button onClick={() => setIsMediaModalOpen(false)} class="text-black hover:text-red-600 transition-colors"><X class="w-8 h-8" /></button>
             </div>
 
             <div class="flex flex-1 overflow-hidden">
-              {/* Media Grid */}
-              <div class="flex-1 overflow-y-auto p-6 border-r border-accent">
+              <div class="flex-1 overflow-y-auto p-6 border-r-4 border-black bg-neutral-50">
                 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  <div
-                    onClick={() => fileInputRef?.click()}
-                    class="aspect-square bg-accent/10 border-2 border-dashed border-accent hover:border-primary flex flex-col items-center justify-center cursor-pointer group"
-                  >
-                    <Upload class="w-8 h-8 text-neutral-500 group-hover:text-primary mb-2" />
-                    <span class="text-[10px] font-bold uppercase text-neutral-500 group-hover:text-foreground">
-                      Upload New
-                    </span>
+                  <div onClick={() => fileInputRef?.click()} class="aspect-square bg-white border-4 border-dashed border-black flex flex-col items-center justify-center cursor-pointer hover:bg-primary/20 transition-all">
+                    <Upload class="w-8 h-8 text-black mb-2" />
+                    <span class="text-[10px] font-bold uppercase text-black">Upload New</span>
                   </div>
-
                   <For each={getFilteredMedia()}>
                     {(item) => (
-                      <div
-                        onClick={() => selectMediaItem(item.url, item.name)}
-                        class="aspect-square border-2 border-transparent hover:border-primary cursor-pointer relative group overflow-hidden bg-accent/5"
-                      >
-                        <img
-                          src={item.url}
-                          class="w-full h-full object-cover"
-                        />
-                        <div class="absolute inset-x-0 bottom-0 bg-black/80 p-2 transform translate-y-full group-hover:translate-y-0 transition-transform">
-                          <p class="text-[10px] text-white font-mono truncate">
-                            {item.name}
-                          </p>
-                        </div>
+                      <div onClick={() => selectMediaItem(item.url, item.name)} class="aspect-square border-4 border-black cursor-pointer relative group overflow-hidden bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-none transition-all">
+                        <img src={item.url} class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
+                        <div class="absolute bottom-0 left-0 right-0 bg-black text-white text-[10px] font-mono p-1 truncate">{item.name}</div>
                       </div>
                     )}
                   </For>
                 </div>
               </div>
-
-              {/* Sidebar Options (Only for Editor) */}
+              {/* Sidebar Options */}
               <Show when={mediaModalTarget() === 'editor'}>
-                <div class="w-64 bg-surface p-6 overflow-y-auto shrink-0 border-l-2 border-accent shadow-xl">
-                  <h3 class="font-oswald font-bold uppercase mb-6 text-lg border-b border-accent pb-2 text-foreground">
-                    Image Options
-                  </h3>
-
+                <div class="w-72 bg-white p-6 overflow-y-auto shrink-0 border-l-4 border-black">
+                  <h3 class="font-oswald font-bold uppercase mb-6 text-lg border-b-4 border-black pb-2">Image Options</h3>
                   <div class="mb-6">
-                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">
-                      Width
-                    </label>
+                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">Width</label>
                     <div class="flex gap-2">
-                      <button
-                        onClick={() => setImgWidth('100%')}
-                        class={`flex-1 py-1 text-xs border ${imgWidth() === '100%'
-                          ? 'bg-primary text-black border-primary'
-                          : 'border-accent text-neutral-500'
-                          }`}
-                      >
-                        Full
-                      </button>
-                      <button
-                        onClick={() => setImgWidth('50%')}
-                        class={`flex-1 py-1 text-xs border ${imgWidth() === '50%'
-                          ? 'bg-primary text-black border-primary'
-                          : 'border-accent text-neutral-500'
-                          }`}
-                      >
-                        50%
-                      </button>
-                      <button
-                        onClick={() => setImgWidth('25%')}
-                        class={`flex-1 py-1 text-xs border ${imgWidth() === '25%'
-                          ? 'bg-primary text-black border-primary'
-                          : 'border-accent text-neutral-500'
-                          }`}
-                      >
-                        25%
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      value={imgWidth()}
-                      onInput={(e) => setImgWidth(e.currentTarget.value)}
-                      class="w-full mt-2 bg-background border border-accent p-2 text-xs font-mono outline-none focus:border-primary text-foreground"
-                    />
-                  </div>
-
-                  <div class="mb-6">
-                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">
-                      Alignment
-                    </label>
-                    <div class="flex gap-2">
-                      <button
-                        onClick={() => setImgAlign('left')}
-                        class={`p-2 border ${imgAlign() === 'left'
-                          ? 'bg-primary text-black border-primary'
-                          : 'border-accent text-neutral-500'
-                          }`}
-                        title="Left"
-                      >
-                        <AlignLeft class="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setImgAlign('center')}
-                        class={`p-2 border ${imgAlign() === 'center'
-                          ? 'bg-primary text-black border-primary'
-                          : 'border-accent text-neutral-500'
-                          }`}
-                        title="Center"
-                      >
-                        <AlignCenter class="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setImgAlign('right')}
-                        class={`p-2 border ${imgAlign() === 'right'
-                          ? 'bg-primary text-black border-primary'
-                          : 'border-accent text-neutral-500'
-                          }`}
-                        title="Right"
-                      >
-                        <AlignRight class="w-4 h-4" />
-                      </button>
+                      <button onClick={() => setImgWidth('100%')} class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${imgWidth() === '100%' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}>Full</button>
+                      <button onClick={() => setImgWidth('50%')} class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${imgWidth() === '50%' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}>50%</button>
+                      <button onClick={() => setImgWidth('25%')} class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${imgWidth() === '25%' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}>25%</button>
                     </div>
                   </div>
-
                   <div class="mb-6">
-                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">
-                      Alt Text
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Description..."
-                      value={imgAlt()}
-                      onInput={(e) => setImgAlt(e.currentTarget.value)}
-                      class="w-full bg-background border border-accent p-2 text-xs font-mono outline-none focus:border-primary text-foreground"
-                    />
+                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">Alignment</label>
+                    <div class="flex gap-2">
+                      <button onClick={() => setImgAlign('left')} class={`p-2 border-2 border-black ${imgAlign() === 'left' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}><AlignLeft class="w-4 h-4" /></button>
+                      <button onClick={() => setImgAlign('center')} class={`p-2 border-2 border-black ${imgAlign() === 'center' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}><AlignCenter class="w-4 h-4" /></button>
+                      <button onClick={() => setImgAlign('right')} class={`p-2 border-2 border-black ${imgAlign() === 'right' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}><AlignRight class="w-4 h-4" /></button>
+                    </div>
                   </div>
-
-                  <div class="text-xs text-neutral-500 font-mono italic">
-                    * Selecting an image will insert it with these settings as
-                    an HTML tag.
+                  <div class="mb-6">
+                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">Alt Text</label>
+                    <input type="text" placeholder="Description..." value={imgAlt()} onInput={(e) => setImgAlt(e.currentTarget.value)} class="w-full bg-white border-2 border-black p-2 text-xs font-mono outline-none focus:bg-neutral-100" />
                   </div>
                 </div>
               </Show>
@@ -1309,145 +1127,29 @@ export default function CreateArticle() {
           </div>
         </div>
       </Show>
+
       {/* Shortcuts Modal */}
       <Show when={isShortcutsModalOpen()}>
         <div class="fixed inset-0 z-60 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
-          <div class="bg-background border-2 border-accent w-full max-w-2xl shadow-2xl relative flex flex-col max-h-[85vh]">
-            <div class="h-14 border-b-2 border-accent flex items-center justify-between px-6 bg-surface shrink-0">
-              <h2 class="font-oswald font-bold uppercase italic text-xl text-foreground">
-                Keyboard Shortcuts
-              </h2>
-              <button
-                onClick={() => setIsShortcutsModalOpen(false)}
-                class="text-neutral-500 hover:text-red-500 transition-colors"
-              >
-                <X class="w-6 h-6" />
-              </button>
+          <div class="bg-white border-4 border-black w-full max-w-2xl shadow-[16px_16px_0px_0px_rgba(255,255,255,1)] relative flex flex-col max-h-[85vh]">
+            <div class="h-14 border-b-4 border-black flex items-center justify-between px-6 bg-primary shrink-0">
+              <h2 class="font-oswald font-bold uppercase text-xl text-black">Keyboard Shortcuts</h2>
+              <button onClick={() => setIsShortcutsModalOpen(false)} class="text-black hover:text-white transition-colors"><X class="w-6 h-6" /></button>
             </div>
-            <div class="p-6 overflow-y-auto">
+            <div class="p-6 overflow-y-auto bg-white">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <h3 class="font-mono text-xs font-bold uppercase text-primary mb-4 border-b border-accent pb-2">
-                    Formatting
-                  </h3>
-                  <ul class="space-y-2 text-xs font-bold font-mono text-foreground">
-                    <li class="flex justify-between items-center">
-                      <span>Bold</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>B</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Italic</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>I</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Strikethrough</span>{' '}
-                      <div>
-                        <Kbd>Alt</Kbd> + <Kbd>S</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Clear Format</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Space</Kbd>
-                      </div>
-                    </li>
+                  <h3 class="font-mono text-xs font-bold uppercase text-black mb-4 border-b-2 border-black pb-2">Formatting</h3>
+                  <ul class="space-y-2 text-xs font-bold font-mono text-neutral-600">
+                    <li class="flex justify-between items-center"><span>Bold</span> <div><Kbd>Ctrl</Kbd> + <Kbd>B</Kbd></div></li>
+                    <li class="flex justify-between items-center"><span>Italic</span> <div><Kbd>Ctrl</Kbd> + <Kbd>I</Kbd></div></li>
+                    <li class="flex justify-between items-center"><span>Strikethrough</span> <div><Kbd>Alt</Kbd> + <Kbd>S</Kbd></div></li>
                   </ul>
                 </div>
                 <div>
-                  <h3 class="font-mono text-xs font-bold uppercase text-primary mb-4 border-b border-accent pb-2">
-                    Headers
-                  </h3>
-                  <ul class="space-y-2 text-xs font-bold font-mono text-foreground">
-                    <li class="flex justify-between items-center">
-                      <span>H1 - H6</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Alt</Kbd> + <Kbd>1-6</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Paragraph</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Enter</Kbd>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 class="font-mono text-xs font-bold uppercase text-primary mb-4 border-b border-accent pb-2">
-                    Lists & Blocks
-                  </h3>
-                  <ul class="space-y-2 text-xs font-bold font-mono text-foreground">
-                    <li class="flex justify-between items-center">
-                      <span>Bullet List</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>8</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Number List</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>7</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Check List</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>C</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Blockquote</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>9</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Code Block</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Alt</Kbd> + <Kbd>C</Kbd>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 class="font-mono text-xs font-bold uppercase text-primary mb-4 border-b border-accent pb-2">
-                    Actions
-                  </h3>
-                  <ul class="space-y-2 text-xs font-bold font-mono text-foreground">
-                    <li class="flex justify-between items-center">
-                      <span>Undo</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Z</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Redo</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>Y</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Save (Mock)</span>{' '}
-                      <div>
-                        <Kbd>Ctrl</Kbd> + <Kbd>S</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Move Line Up</span>{' '}
-                      <div>
-                        <Kbd>Alt</Kbd> + <Kbd>Up</Kbd>
-                      </div>
-                    </li>
-                    <li class="flex justify-between items-center">
-                      <span>Move Line Down</span>{' '}
-                      <div>
-                        <Kbd>Alt</Kbd> + <Kbd>Down</Kbd>
-                      </div>
-                    </li>
+                  <h3 class="font-mono text-xs font-bold uppercase text-black mb-4 border-b-2 border-black pb-2">Headers</h3>
+                  <ul class="space-y-2 text-xs font-bold font-mono text-neutral-600">
+                    <li class="flex justify-between items-center"><span>H1 - H6</span> <div><Kbd>Ctrl</Kbd> + <Kbd>Alt</Kbd> + <Kbd>Number</Kbd></div></li>
                   </ul>
                 </div>
               </div>

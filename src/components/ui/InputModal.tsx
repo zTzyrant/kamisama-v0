@@ -59,11 +59,11 @@ export default function InputModal(props: InputModalProps) {
           `}
                 </style>
                 <div
-                    class="w-full max-w-lg bg-background border-2 border-accent shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]"
+                    class="w-full max-w-lg bg-background border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]"
                     style={{ animation: "brutalist-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards" }}
                 >
                     {/* Header */}
-                    <div class="flex items-center justify-between border-b-2 border-accent p-4 bg-surface">
+                    <div class="flex items-center justify-between border-b-4 border-black p-4 bg-surface">
                         <h3 class="font-oswald font-black text-xl uppercase italic text-foreground tracking-wide">{props.title}</h3>
                         <button
                             type="button"
@@ -82,7 +82,7 @@ export default function InputModal(props: InputModalProps) {
                             value={value()}
                             onInput={(e) => setValue(e.currentTarget.value)}
                             placeholder={props.placeholder}
-                            class="w-full bg-transparent border-b-2 border-accent py-4 text-xl font-mono font-bold text-foreground placeholder-neutral-600 outline-none focus:border-primary transition-colors mb-8"
+                            class="w-full bg-transparent border-b-4 border-black py-4 text-xl font-mono font-bold text-foreground placeholder-neutral-600 outline-none focus:border-primary transition-colors mb-8"
                         />
 
                         <div class="flex justify-end gap-4">

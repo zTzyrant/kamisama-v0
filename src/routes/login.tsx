@@ -1,10 +1,12 @@
 import { createSignal, Show } from "solid-js";
 import { Title } from "@solidjs/meta";
 import { A, useNavigate } from "@solidjs/router";
-import api from "~/lib/api";
+import { authApi } from "~/lib/api";
+import { useAuth } from "~/lib/auth";
 
 export default function Login() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [step, setStep] = createSignal<'login' | '2fa'>('login');
     const [loading, setLoading] = createSignal(false);
     const [error, setError] = createSignal<string | null>(null);
@@ -30,21 +32,26 @@ export default function Login() {
                 remember_me: rememberMe()
             };
 
-            // NOTE: In a real scenario, remove the mock response and use api.post
-            // For demonstration if backend is not running, we might need a mock mode.
-            // But user asked to use axios, so I will implement the real call.
-
-            const res = await api.post('/api/auth/login', payload);
+            const res = await authApi.login(payload);
             const data = res.data;
 
             if (data.status === 'success') {
                 // Normal Success
-                localStorage.setItem('token', data.data.token);
+                // Fetch profile to get full user object
+                localStorage.setItem('access_token', data.data.token);
                 localStorage.setItem('refresh_token', data.data.refresh_token);
-                navigate('/dashboard');
-            } else if (data.code === 'TWO_FACTOR_REQUIRED') {
+
+                // We need to fetch the user profile to complete the login in context
+                const profileRes = await authApi.getProfile();
+                if (profileRes.data.status === 'success') {
+                    login(data.data.token, data.data.refresh_token, profileRes.data.data);
+                    navigate('/dashboard');
+                } else {
+                    setError('Failed to fetch user profile');
+                }
+            } else if (data.code === 'TWO_FACTOR_REQUIRED' && data.data && (data.data as any).temp_token) {
                 // 2FA Required
-                setTempToken(data.data.temp_token);
+                setTempToken((data.data as any).temp_token);
                 setStep('2fa');
             } else {
                 setError(data.message || 'Login failed');
@@ -52,8 +59,8 @@ export default function Login() {
         } catch (err: any) {
             console.error(err);
             if (err.response && err.response.data) {
-                // Check if it's the 2FA error response format (some APIs return it as 4xx)
                 const data = err.response.data;
+                // Handle 2FA Required if status was not success but still requires 2FA (e.g. 202)
                 if (data.code === 'TWO_FACTOR_REQUIRED') {
                     setTempToken(data.data.temp_token);
                     setStep('2fa');
@@ -79,13 +86,21 @@ export default function Login() {
                 code: twoFactorCode()
             };
 
-            const res = await api.post('/api/auth/2fa/verify-login', payload);
+            const res = await authApi.verifyLogin2fa(payload);
             const data = res.data;
 
             if (data.status === 'success') {
-                localStorage.setItem('token', data.data.token);
+                localStorage.setItem('access_token', data.data.token);
                 localStorage.setItem('refresh_token', data.data.refresh_token);
-                navigate('/dashboard');
+
+                // Fetch profile to get full user object
+                const profileRes = await authApi.getProfile();
+                if (profileRes.data.status === 'success') {
+                    login(data.data.token, data.data.refresh_token, profileRes.data.data);
+                    navigate('/dashboard');
+                } else {
+                    setError('Failed to fetch user profile');
+                }
             } else {
                 setError(data.message || 'Verification failed');
             }
@@ -110,16 +125,16 @@ export default function Login() {
             <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
             <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/20 blur-[120px] rounded-full pointer-events-none"></div>
 
-            <div class="w-full max-w-md bg-surface border-2 border-accent shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative z-10 p-8">
-                <div class="mb-8 text-center border-b-2 border-accent pb-6">
+            <div class="w-full max-w-md bg-surface border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative z-10 p-8">
+                <div class="mb-8 text-center border-b-4 border-black pb-6">
                     <h1 class="font-oswald text-4xl font-black italic uppercase tracking-wider mb-2">
-                        <span class="bg-primary text-black px-2 mr-1">DAKOTA</span> ADMIN
+                        <span class="bg-primary text-black px-2 mr-1 border-2 border-black">DAKOTA</span> ADMIN
                     </h1>
                     <p class="text-xs font-bold uppercase text-neutral-500 tracking-[0.2em]">Secure Access Terminal</p>
                 </div>
 
                 <Show when={error()}>
-                    <div class="mb-6 p-4 bg-red-500/10 border-2 border-red-500 text-red-500 text-xs font-bold uppercase">
+                    <div class="mb-6 p-4 bg-red-500/10 border-4 border-red-500 text-red-500 text-xs font-bold uppercase">
                         ERROR: {error()}
                     </div>
                 </Show>
@@ -132,7 +147,7 @@ export default function Login() {
                                 type="text"
                                 value={loginId()}
                                 onInput={(e) => setLoginId(e.currentTarget.value)}
-                                class="w-full bg-background border-2 border-accent p-3 font-bold text-foreground focus:border-primary outline-none transition-colors placeholder-neutral-500"
+                                class="w-full bg-background border-4 border-black p-3 font-bold text-foreground focus:bg-white focus:text-black outline-none transition-colors placeholder-neutral-500"
                                 placeholder="USERNAME"
                             />
                         </div>
@@ -142,7 +157,7 @@ export default function Login() {
                                 type="password"
                                 value={password()}
                                 onInput={(e) => setPassword(e.currentTarget.value)}
-                                class="w-full bg-background border-2 border-accent p-3 font-bold text-foreground focus:border-primary outline-none transition-colors placeholder-neutral-500"
+                                class="w-full bg-background border-4 border-black p-3 font-bold text-foreground focus:bg-white focus:text-black outline-none transition-colors placeholder-neutral-500"
                                 placeholder="••••••••"
                             />
                         </div>
@@ -152,16 +167,15 @@ export default function Login() {
                                 id="remember"
                                 checked={rememberMe()}
                                 onChange={(e) => setRememberMe(e.currentTarget.checked)}
-                                class="appearance-none w-5 h-5 border-2 border-accent bg-background checked:bg-primary checked:border-primary cursor-pointer relative"
+                                class="appearance-none w-6 h-6 border-4 border-black bg-background checked:bg-primary cursor-pointer relative"
                             />
-                            {/* Custom Checkmark logic handled by CSS or just simple usage for now */}
                             <label for="remember" class="text-xs font-bold uppercase text-neutral-500 cursor-pointer select-none">Remember access</label>
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading()}
-                            class="w-full bg-primary text-black font-oswald font-bold uppercase text-lg py-4 border-2 border-transparent hover:bg-foreground hover:text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="w-full bg-primary text-black font-oswald font-bold uppercase text-lg py-4 border-4 border-black hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading() ? 'Authenticating...' : 'Enter System'}
                         </button>
@@ -180,7 +194,7 @@ export default function Login() {
                                 type="text"
                                 value={twoFactorCode()}
                                 onInput={(e) => setTwoFactorCode(e.currentTarget.value)}
-                                class="w-full bg-background border-2 border-accent p-4 text-center font-mono text-2xl tracking-[0.5em] font-bold text-foreground focus:border-primary outline-none transition-colors placeholder-neutral-700"
+                                class="w-full bg-background border-4 border-black p-4 text-center font-mono text-2xl tracking-[0.5em] font-bold text-foreground focus:bg-white focus:text-black outline-none transition-colors placeholder-neutral-700"
                                 placeholder="000000"
                                 maxLength={6}
                             />
@@ -188,23 +202,23 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={loading()}
-                            class="w-full bg-primary text-black font-oswald font-bold uppercase text-lg py-4 border-2 border-transparent hover:bg-foreground hover:text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="w-full bg-primary text-black font-oswald font-bold uppercase text-lg py-4 border-4 border-black hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading() ? 'Verifying...' : 'Unlock Access'}
                         </button>
                         <button
                             type="button"
                             onClick={() => setStep('login')}
-                            class="w-full text-xs font-bold uppercase text-neutral-500 hover:text-foreground mt-4"
+                            class="w-full text-xs font-bold uppercase text-neutral-500 hover:text-foreground mt-4 underline decoration-2 underline-offset-4"
                         >
                             Cancel / Back to Login
                         </button>
                     </form>
                 </Show>
 
-                <div class="mt-8 pt-6 border-t-2 border-accent text-center">
+                <div class="mt-8 pt-6 border-t-4 border-black text-center">
                     <p class="text-xs font-mono font-bold text-neutral-500 uppercase">
-                        Don't have an account? <A href="/register" class="text-primary hover:underline">Register Access</A>
+                        Don't have an account? <A href="/register" class="text-primary bg-black px-1 hover:underline">Register Access</A>
                     </p>
                 </div>
             </div>

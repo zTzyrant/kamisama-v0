@@ -19,7 +19,7 @@ const TableOfContents: Component<TableOfContentsProps> = (props) => {
 
   return (
     <div class="space-y-4">
-      <h4 class="font-oswald font-black text-xs uppercase tracking-widest text-neutral-500 mb-4 border-l-2 border-primary pl-3">
+      <h4 class="font-oswald font-black text-xs uppercase tracking-widest text-black mb-4 border-l-4 border-black pl-3">
         On This Page
       </h4>
       <nav>
@@ -36,10 +36,9 @@ const TableOfContents: Component<TableOfContentsProps> = (props) => {
                   onClick={(e) => handleClick(e, heading.id)}
                   class={`
                     block text-xs font-mono transition-colors duration-200 uppercase
-                    ${
-                      props.activeId === heading.id
-                        ? 'text-primary font-bold border-l-2 border-primary pl-2 -ml-2.5'
-                        : 'text-neutral-500 hover:text-foreground'
+                    ${props.activeId === heading.id
+                      ? 'text-black font-bold border-l-4 border-black pl-2 -ml-2.5'
+                      : 'text-neutral-500 hover:text-foreground'
                     }
                   `}
                 >

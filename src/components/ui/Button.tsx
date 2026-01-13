@@ -21,7 +21,7 @@ export default function Button(props: ButtonProps) {
 
   const variants = {
     primary:
-      'bg-primary text-black hover:bg-black hover:text-primary transition-colors border-2 border-primary',
+      'bg-primary text-black hover:bg-black hover:text-primary transition-colors border-2 border-black',
     secondary:
       'bg-white text-black border-2 border-black hover:bg-black hover:text-white transition-colors',
     outline:

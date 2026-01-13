@@ -1,168 +1,150 @@
+import { createSignal, onMount, For, Show } from "solid-js";
 import { Title } from "@solidjs/meta";
-import { Link, Eye, Search, ChevronLeft, ChevronRight, Info, Filter, Calendar, User, Edit, BarChart2, Trash2, Plus } from "lucide-solid";
-import { createSignal, For } from "solid-js";
 import { A } from "@solidjs/router";
+import { articlesApi } from "~/lib/api";
+import { formatDate } from "~/lib/utils"; // Assuming utils exists, or I will create it. If not, I'll inline.
+// I will inline formatDate for now to avoid dependency issues if utils doesn't exist.
 
-export default function ArticlesList() {
-    const [filterStatus, setFilterStatus] = createSignal("all");
 
-    // Dummy data for articles
-    const [articles] = createSignal([
-        {
-            id: 0,
-            title: "Markdown Features Showcase",
-            status: "Published",
-            date: "Jan 07, 2026",
-            author: "System Admin",
-            views: "0"
-        },
-        {
-            id: 1,
-            title: "The Rise of Brutalism in 2024",
-            status: "Published",
-            date: "Oct 24, 2023",
-            author: "John Doe",
-            views: "1.2k"
-        },
-        {
-            id: 2,
-            title: "Typography Rules for Developers",
-            status: "Draft",
-            date: "Oct 12, 2023",
-            author: "Jane Smith",
-            views: "0"
-        },
-        {
-            id: 3,
-            title: "Understanding SolidJS Signals",
-            status: "Published",
-            date: "Sep 28, 2023",
-            author: "John Doe",
-            views: "854"
+
+export default function ArticlesIndex() {
+    const [articles, setArticles] = createSignal<any[]>([]);
+    const [loading, setLoading] = createSignal(true);
+    const [error, setError] = createSignal<string | null>(null);
+
+    const fetchArticles = async () => {
+        setLoading(true);
+        try {
+            const res = await articlesApi.list({ limit: 100 }); // Fetch 100 for now
+            if (res.data.status === 'success') {
+                setArticles(res.data.data.data);
+            } else {
+                setError(res.data.message || 'Failed to fetch articles');
+            }
+        } catch (err: any) {
+            console.error(err);
+            setError('Failed to load articles');
+        } finally {
+            setLoading(false);
         }
-    ]);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this article?')) return;
+
+        try {
+            await articlesApi.delete(id);
+            // Optimistic update or refetch
+            setArticles(articles().filter(a => a.id !== id));
+        } catch (err) {
+            alert('Failed to delete article');
+        }
+    };
+
+    onMount(() => {
+        fetchArticles();
+    });
 
     return (
-        <>
-            <Title>Articles | DAKOTA ADMIN</Title>
+        <div class="space-y-8 font-mono">
+            <Title>Articles | Dashboard</Title>
 
-            <header class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 border-black pb-6">
                 <div>
-                    <h2 class="text-5xl md:text-7xl font-oswald font-bold italic uppercase leading-none text-foreground">
-                        Articles
-                    </h2>
+                    <h1 class="font-oswald text-4xl font-black uppercase tracking-tighter">
+                        ARTICLE <span class="bg-primary text-black px-2 border-2 border-black inline-block transform skew-x-12">ARCHIVE</span>
+                    </h1>
+                    <p class="text-neutral-500 font-bold uppercase tracking-widest mt-2">Manage your content stream</p>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="text-right hidden md:block">
-                        <div class="text-3xl font-oswald font-bold text-primary">24</div>
-                        <div class="text-xs uppercase font-bold text-neutral-500">Published</div>
-                    </div>
-                    <div class="h-10 w-[2px] bg-accent hidden md:block"></div>
-                    <A
-                        href="/dashboard/articles/create"
-                        class="bg-foreground text-background font-oswald font-bold uppercase py-3 px-6 hover:opacity-90 transition-opacity flex items-center gap-2"
-                    >
-                        <Plus class="w-4 h-4" />
-                        Create New Article
-                    </A>
-                </div>
+                <A
+                    href="/dashboard/articles/create"
+                    class="bg-black text-white font-oswald font-bold uppercase py-3 px-6 border-2 border-transparent hover:bg-primary hover:text-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                    + Create New
+                </A>
             </header>
 
-            {/* Toolbar */}
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
-                <div class="flex gap-4 w-full md:w-auto">
-                    <div class="relative flex-1 md:w-80">
-                        <Search class="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-500 w-5 h-5" />
-                        <input
-                            class="w-full bg-background border-2 border-accent text-sm font-bold p-4 pl-12 uppercase focus:ring-0 focus:border-primary placeholder-neutral-500 transition-colors text-foreground outline-none"
-                            placeholder="SEARCH ARTICLES..."
-                            type="text"
-                        />
-                    </div>
-                    <button class="bg-background border-2 border-accent p-4 text-neutral-500 hover:border-primary hover:text-foreground transition-colors">
-                        <Filter class="w-5 h-5" />
-                    </button>
+            <Show when={error()}>
+                <div class="p-4 bg-red-500/10 border-4 border-red-500 text-red-500 font-bold uppercase">
+                    {error()}
                 </div>
+            </Show>
 
-                <div class="flex gap-2">
-                    <button class="px-4 py-2 font-mono text-xs font-bold uppercase bg-primary text-black border-2 border-transparent">All Posts</button>
-                    <button class="px-4 py-2 font-mono text-xs font-bold uppercase bg-background border-2 border-accent text-neutral-500 hover:text-foreground hover:border-foreground transition-colors">Published</button>
-                    <button class="px-4 py-2 font-mono text-xs font-bold uppercase bg-background border-2 border-accent text-neutral-500 hover:text-foreground hover:border-foreground transition-colors">Drafts</button>
-                </div>
-            </div>
+            <div class="bg-surface border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-black text-white uppercase text-xs tracking-wider font-oswald">
+                                <th class="p-4 border-r border-neutral-700">Title</th>
+                                <th class="p-4 border-r border-neutral-700">Status</th>
+                                <th class="p-4 border-r border-neutral-700">Tags</th>
+                                <th class="p-4 border-r border-neutral-700">Date</th>
+                                <th class="p-4 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y-2 divide-black">
+                            <Show when={loading()}>
+                                <tr>
+                                    <td colspan="5" class="p-8 text-center animate-pulse font-bold uppercase">Loading Archive...</td>
+                                </tr>
+                            </Show>
 
-            <div class="mb-6 flex items-start gap-3 text-xs text-neutral-500 border-l-2 border-primary pl-3 py-1">
-                <Info class="w-4 h-4" />
-                <p>NOTE: EDITING OR DELETING CONTENT IS ONLY AVAILABLE IN THE "VIEW ARTICLE" SCREEN TO PREVENT ACCIDENTAL DATA LOSS.</p>
-            </div>
+                            <Show when={!loading() && articles().length === 0}>
+                                <tr>
+                                    <td colspan="5" class="p-8 text-center font-bold uppercase text-neutral-500">No articles found. Create one to get started.</td>
+                                </tr>
+                            </Show>
 
-            {/* Articles List */}
-            <div class="space-y-4">
-                <For each={articles()}>
-                    {(article) => (
-                        <div class="group relative border-2 border-accent bg-background hover:border-primary transition-colors p-6 md:p-8 flex flex-col md:flex-row gap-6 md:items-center">
-                            {/* Status Indicator */}
-                            <div class="absolute top-0 left-0 w-1 h-full bg-accent group-hover:bg-primary transition-colors"></div>
-
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-3">
-                                    <span class={`font-mono text-[10px] font-bold uppercase px-2 py-1 ${article.status === 'Published' ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
-                                        {article.status}
-                                    </span>
-                                    <span class="font-mono text-[10px] text-neutral-500 uppercase flex items-center gap-1">
-                                        <Calendar class="w-3 h-3" /> {article.date}
-                                    </span>
-                                </div>
-                                <h3 class="font-oswald text-2xl md:text-3xl font-bold uppercase italic text-foreground mb-2 group-hover:underline decoration-primary decoration-4 underline-offset-4 cursor-pointer">
-                                    {article.title}
-                                </h3>
-                                <div class="flex items-center gap-4 text-xs font-mono text-neutral-500">
-                                    <span class="flex items-center gap-1"><User class="w-3 h-3" /> {article.author}</span>
-                                    <span class="flex items-center gap-1"><Eye class="w-3 h-3" /> {article.views}</span>
-                                </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div class="flex items-center gap-3 md:border-l-2 md:border-accent md:pl-6 md:h-16">
-                                <button
-                                    class="w-10 h-10 flex items-center justify-center border-2 border-accent text-neutral-500 hover:bg-primary hover:text-black hover:border-primary transition-colors"
-                                    title="Edit"
-                                >
-                                    <Edit class="w-4 h-4" />
-                                </button>
-                                <button
-                                    class="w-10 h-10 flex items-center justify-center border-2 border-accent text-neutral-500 hover:bg-primary hover:text-black hover:border-primary transition-colors"
-                                    title="View Stats"
-                                >
-                                    <BarChart2 class="w-4 h-4" />
-                                </button>
-                                <button
-                                    class="w-10 h-10 flex items-center justify-center border-2 border-accent text-neutral-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
-                                    title="Delete"
-                                >
-                                    <Trash2 class="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </For>
-            </div>
-
-            {/* Pagination (Visual) */}
-            <div class="flex items-center justify-between mt-12 border-t-2 border-accent pt-6">
-                <span class="font-mono text-xs text-neutral-500 uppercase font-bold">Showing 1-5 of 12</span>
-                <div class="flex gap-2">
-                    <button class="w-10 h-10 border-2 border-accent flex items-center justify-center hover:bg-foreground hover:text-background disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
-                        <ChevronLeft class="w-5 h-5" />
-                    </button>
-                    <div class="flex items-center justify-center w-10 h-10 bg-primary font-mono font-bold text-black border-2 border-accent">1</div>
-                    <button class="w-10 h-10 border-2 border-accent flex items-center justify-center hover:bg-foreground hover:text-background transition-colors text-foreground">2</button>
-                    <button class="w-10 h-10 border-2 border-accent flex items-center justify-center hover:bg-foreground hover:text-background transition-colors text-foreground">3</button>
-                    <button class="w-10 h-10 border-2 border-accent flex items-center justify-center hover:bg-foreground hover:text-background transition-colors text-foreground">
-                        <ChevronRight class="w-5 h-5" />
-                    </button>
+                            <For each={articles()}>
+                                {(article) => (
+                                    <tr class="hover:bg-primary/5 transition-colors group">
+                                        <td class="p-4 border-r-2 border-black font-bold">
+                                            <div class="truncate max-w-xs">{article.title}</div>
+                                            <div class="text-[10px] text-neutral-500 font-mono mt-1">{article.id}</div>
+                                        </td>
+                                        <td class="p-4 border-r-2 border-black">
+                                            <span class={`px-2 py-1 text-xs font-bold uppercase border border-black ${article.status === 'published' ? 'bg-green-400' : 'bg-neutral-200'
+                                                }`}>
+                                                {article.status}
+                                            </span>
+                                        </td>
+                                        <td class="p-4 border-r-2 border-black">
+                                            <div class="flex flex-wrap gap-1">
+                                                <For each={article.tags}>
+                                                    {(tag: any) => (
+                                                        <span class="text-[10px] bg-black text-white px-1">#{tag.slug}</span>
+                                                    )}
+                                                </For>
+                                            </div>
+                                        </td>
+                                        <td class="p-4 border-r-2 border-black text-sm">
+                                            {formatDate(article.created_at)}
+                                        </td>
+                                        <td class="p-4">
+                                            <div class="flex justify-center gap-2">
+                                                <A
+                                                    href={`/dashboard/articles/${article.id}`}
+                                                    class="p-2 border-2 border-black hover:bg-black hover:text-white transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    ✎
+                                                </A>
+                                                <button
+                                                    onClick={() => handleDelete(article.id)}
+                                                    class="p-2 border-2 border-black hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </For>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </>
+        </div>
     );
 }

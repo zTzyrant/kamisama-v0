@@ -1,6 +1,7 @@
 import { A } from "@solidjs/router";
-import { LayoutGrid, FileText, Image as ImageIcon, Settings, LogOut, Plus, X } from "lucide-solid";
+import { LayoutGrid, FileText, Image as ImageIcon, Settings, LogOut, Plus, X, Tag } from "lucide-solid";
 import { Show, createEffect, onCleanup } from "solid-js";
+import { useAuth } from "~/lib/auth";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -8,6 +9,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar(props: SidebarProps) {
+    const { logout } = useAuth();
+
     // Scroll lock effect
     createEffect(() => {
         if (typeof document !== 'undefined') {
@@ -73,6 +76,16 @@ export default function Sidebar(props: SidebarProps) {
                         Articles
                     </A>
                     <A
+                        href="/dashboard/tags"
+                        onClick={props.onClose}
+                        activeClass="bg-primary text-black shadow-[4px_4px_0px_0px_#000000] border-2 border-black transform translate-x-1"
+                        inactiveClass="text-neutral-500 hover:bg-accent/10 hover:text-foreground hover:border-l-4 hover:border-primary border-2 border-transparent"
+                        class="group flex items-center px-4 py-3 text-sm font-bold uppercase transition-all duration-200"
+                    >
+                        <Tag class="mr-3 w-5 h-5" />
+                        Tags
+                    </A>
+                    <A
                         href="/dashboard/media"
                         onClick={props.onClose}
                         activeClass="bg-primary text-black shadow-[4px_4px_0px_0px_#000000] border-2 border-black transform translate-x-1"
@@ -83,14 +96,14 @@ export default function Sidebar(props: SidebarProps) {
                         Media Library
                     </A>
                     <A
-                        href="/dashboard/settings"
+                        href="/dashboard/settings/profile"
                         onClick={props.onClose}
                         activeClass="bg-primary text-black shadow-[4px_4px_0px_0px_#000000] border-2 border-black transform translate-x-1"
                         inactiveClass="text-neutral-500 hover:bg-accent/10 hover:text-foreground hover:border-l-4 hover:border-primary border-2 border-transparent"
                         class="group flex items-center px-4 py-3 text-sm font-bold uppercase transition-all duration-200"
                     >
                         <Settings class="mr-3 w-5 h-5" />
-                        Settings
+                        Profile
                     </A>
                 </nav>
 
@@ -105,7 +118,10 @@ export default function Sidebar(props: SidebarProps) {
                     </A>
                 </div>
                 <div class="p-6 shrink-0">
-                    <button class="flex items-center text-red-600 dark:text-red-500 text-xs font-bold uppercase tracking-widest hover:underline w-full">
+                    <button
+                        onClick={() => logout()}
+                        class="flex items-center text-red-600 dark:text-red-500 text-xs font-bold uppercase tracking-widest hover:underline w-full"
+                    >
                         <LogOut class="mr-2 w-4 h-4" />
                         Sign Out
                     </button>

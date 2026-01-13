@@ -73,7 +73,7 @@ export default function SearchableSelect(props: SearchableSelectProps) {
             <div
                 onClick={() => !props.disabled && setIsOpen(!isOpen())}
                 class={clsx(
-                    "flex items-center justify-between w-full px-4 py-3 bg-background border-2 border-accent cursor-pointer transition-all",
+                    "flex items-center justify-between w-full px-4 py-3 bg-background border-4 border-black cursor-pointer transition-all",
                     "hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]",
                     isOpen() ? "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]" : "",
                     props.disabled ? "opacity-50 cursor-not-allowed" : ""
@@ -87,14 +87,14 @@ export default function SearchableSelect(props: SearchableSelectProps) {
 
             {/* Dropdown Menu */}
             <Show when={isOpen()}>
-                <div class="absolute z-50 w-full mt-2 bg-background border-2 border-accent shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)] animate-in fade-in zoom-in-95 duration-100">
+                <div class="absolute z-50 w-full mt-2 bg-background border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)] animate-in fade-in zoom-in-95 duration-100">
 
                     {/* Search Input */}
-                    <div class="p-2 border-b-2 border-accent bg-surface">
+                    <div class="p-2 border-b-4 border-black bg-surface">
                         <input
                             ref={inputRef}
                             type="text"
-                            class="w-full px-3 py-2 bg-background border-2 border-neutral-300 focus:border-primary outline-none font-mono text-sm"
+                            class="w-full px-3 py-2 bg-background border-2 border-black focus:border-primary outline-none font-mono text-sm"
                             placeholder="Search..."
                             value={search()}
                             onInput={(e) => setSearch(e.currentTarget.value)}

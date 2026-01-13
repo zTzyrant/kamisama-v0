@@ -2,12 +2,12 @@ import siteData from '~/data/site.json';
 import { onMount, onCleanup } from 'solid-js';
 import { Title } from '@solidjs/meta';
 import { animate } from 'motion';
-import Hero from '~/components/Hero';
-import Manifesto from '~/components/Manifesto';
-import SelectedWorks from '~/components/SelectedWorks';
-import TechStack from '~/components/TechStack';
-import ContactCta from '~/components/ContactCta';
-import Footer from '~/components/Footer';
+import Hero from '~/components/home/Hero';
+import Manifesto from '~/components/home/Manifesto';
+import SelectedWorks from '~/components/home/SelectedWorks';
+import TechStack from '~/components/home/TechStack';
+import ContactCta from '~/components/home/ContactCta';
+import Footer from '~/components/home/Footer';
 
 declare module 'solid-js' {
   namespace JSX {
@@ -47,23 +47,23 @@ export default function Home() {
 
       <Hero />
 
-      <div use:reveal>
+      <div use: reveal>
         <Manifesto />
       </div>
 
-      <div use:reveal>
+      <div use: reveal>
         <SelectedWorks />
       </div>
 
-      <div use:reveal>
+      <div use: reveal>
         <TechStack />
       </div>
 
-      <div use:reveal>
+      <div use: reveal>
         <ContactCta />
       </div>
 
-      <div use:reveal>
+      <div use: reveal>
         <Footer />
       </div>
     </main>
