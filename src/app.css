@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&family=Inter:wght@400;600&display=swap');
 @import 'tailwindcss';
+@import 'highlight.js/styles/github-dark.css';
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-background: var(--background);

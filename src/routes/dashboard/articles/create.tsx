@@ -1,7 +1,14 @@
-import { createSignal, createEffect, Show, For, onCleanup, onMount } from 'solid-js';
+import {
+  createSignal,
+  createEffect,
+  Show,
+  For,
+  onCleanup,
+  onMount
+} from 'solid-js';
 import { Title } from '@solidjs/meta';
 import { useNavigate } from '@solidjs/router';
-import { marked } from 'marked';
+
 import DOMPurify from 'dompurify';
 import {
   Bold,
@@ -34,11 +41,9 @@ import Kbd from '~/components/ui/Kbd';
 import TableOfContents from '~/components/TableOfContents';
 import { extractHeadings, slugify, type TocItem } from '~/lib/toc';
 import { articlesApi } from '~/lib/api';
+import { configureMarkdown } from '~/lib/markdown';
 
-marked.setOptions({
-  breaks: true,
-  gfm: true
-});
+const marked = configureMarkdown();
 
 export default function CreateArticle() {
   const navigate = useNavigate();
@@ -83,7 +88,7 @@ export default function CreateArticle() {
   const [inputModalConfig, setInputModalConfig] = createSignal({
     title: '',
     placeholder: '',
-    onSubmit: (value: string) => { }
+    onSubmit: (value: string) => {}
   });
 
   // Article Meta State
@@ -106,12 +111,12 @@ export default function CreateArticle() {
         setAvailableApiTags(res.data.data);
       }
     } catch (err) {
-      console.error("Failed to fetch tags", err);
+      console.error('Failed to fetch tags', err);
     }
   });
 
   const availableTags = () => {
-    return availableApiTags().map(tag => ({
+    return availableApiTags().map((tag) => ({
       label: tag.name.toUpperCase(),
       value: tag.id
     }));
@@ -128,7 +133,7 @@ export default function CreateArticle() {
   };
 
   const getTagName = (tagId: string) => {
-    const tag = availableApiTags().find(t => t.id === tagId);
+    const tag = availableApiTags().find((t) => t.id === tagId);
     return tag ? tag.name : tagId;
   };
 
@@ -251,18 +256,32 @@ export default function CreateArticle() {
     const headings = extractHeadings(raw);
     setTocHeadings(headings);
 
-    // Configure marked with custom renderer for IDs
-    const renderer = new marked.Renderer();
-    renderer.heading = ({ text, depth }) => {
-      const id = slugify(text);
-      return `<h${depth} id="${id}">${text}</h${depth}>`;
-    };
+    // headings are already extracted above
 
-    const parsed = await marked.parse(raw, { renderer });
+    const parsed = await marked.parse(raw);
     const clean = DOMPurify.sanitize(parsed);
     setHtmlContent(clean);
     setIsPreviewOpen(true);
   };
+
+  createEffect(() => {
+    const handleCopy = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.matches('.copy-code-btn')) {
+        const code = decodeURIComponent(target.dataset.code || '');
+        navigator.clipboard.writeText(code).then(() => {
+          const originalText = target.innerText;
+          target.innerText = 'COPIED!';
+          setTimeout(() => (target.innerText = originalText), 2000);
+        });
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', handleCopy);
+      onCleanup(() => document.removeEventListener('click', handleCopy));
+    }
+  });
 
   const openInput = (
     title: string,
@@ -584,8 +603,9 @@ export default function CreateArticle() {
 
       let embedCode = '';
       if (url.includes('codepen.io')) {
-        embedCode = `\n<iframe height="300" style="width: 100%;" scrolling="no" title="CodePen Embed" src="${url.replace('/pen/', '/embed/').split('?')[0]
-          }?default-tab=result" frameborder="no" allowtransparency="true" allowfullscreen="true"></iframe>\n`;
+        embedCode = `\n<iframe height="300" style="width: 100%;" scrolling="no" title="CodePen Embed" src="${
+          url.replace('/pen/', '/embed/').split('?')[0]
+        }?default-tab=result" frameborder="no" allowtransparency="true" allowfullscreen="true"></iframe>\n`;
       } else if (url.includes('codesandbox.io')) {
         embedCode = `\n<iframe src="${url.replace(
           '/s/',
@@ -759,7 +779,9 @@ export default function CreateArticle() {
       if (err.response && err.response.data) {
         const data = err.response.data;
         if (Array.isArray(data.data)) {
-          const messages = data.data.map((e: any) => `${e.field}: ${e.message}`).join(', ');
+          const messages = data.data
+            .map((e: any) => `${e.field}: ${e.message}`)
+            .join(', ');
           setError(messages);
         } else {
           setError(data.message || 'An error occurred');
@@ -796,7 +818,10 @@ export default function CreateArticle() {
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 mt-4">
         <div>
           <h1 class="text-5xl md:text-7xl font-oswald font-black uppercase leading-none text-black tracking-tighter">
-            New <span class="bg-primary px-2 transform -skew-x-6 inline-block border-4 border-black">Transmission</span>
+            New{' '}
+            <span class="bg-primary px-2 transform -skew-x-6 inline-block border-4 border-black">
+              Transmission
+            </span>
           </h1>
         </div>
         <div class="flex gap-4">
@@ -812,7 +837,9 @@ export default function CreateArticle() {
             disabled={loading()}
             class="bg-black text-white border-4 border-black font-oswald font-bold uppercase py-3 px-6 hover:bg-primary hover:text-black hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
           >
-            {loading() && status() === 'published' ? 'Publishing...' : 'Publish Live'}
+            {loading() && status() === 'published'
+              ? 'Publishing...'
+              : 'Publish Live'}
           </button>
         </div>
       </div>
@@ -828,8 +855,8 @@ export default function CreateArticle() {
         {/* Editor Area */}
         <div class="lg:col-span-8 flex flex-col gap-8">
           {/* Title Input */}
-          <div class="bg-white border-4 border-black p-6 group shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] transition-transform">
-            <label class="block text-xs font-mono font-bold uppercase text-black mb-2 bg-primary/20 inline-block px-1">
+          <div class="bg-white dark:bg-neutral-900 border-4 border-black dark:border-neutral-700 p-6 group shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)] hover:translate-x-[1px] hover:translate-y-[1px] transition-transform">
+            <label class="block text-xs font-mono font-bold uppercase text-black dark:text-white mb-2 bg-primary/20 dark:bg-primary/40 inline-block px-1">
               Article Title
             </label>
             <input
@@ -837,45 +864,111 @@ export default function CreateArticle() {
               placeholder="ENTER TITLE HERE..."
               value={title()}
               onInput={(e) => setTitle(e.currentTarget.value)}
-              class="w-full bg-transparent border-b-4 border-black text-3xl md:text-5xl font-oswald font-bold uppercase text-black placeholder-neutral-400 focus:outline-none focus:border-primary py-2"
+              class="w-full bg-transparent border-b-4 border-black dark:border-neutral-700 text-3xl md:text-5xl font-oswald font-bold uppercase text-black dark:text-white placeholder-neutral-400 focus:outline-none focus:border-primary py-2"
             />
           </div>
 
           {/* Excerpt Input */}
-          <div class="bg-white border-4 border-black p-6 group shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <label class="block text-xs font-mono font-bold uppercase text-black mb-2 bg-primary/20 inline-block px-1">
+          <div class="bg-white dark:bg-neutral-900 border-4 border-black dark:border-neutral-700 p-6 group shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]">
+            <label class="block text-xs font-mono font-bold uppercase text-black dark:text-white mb-2 bg-primary/20 dark:bg-primary/40 inline-block px-1">
               Excerpt (Optional)
             </label>
             <textarea
               placeholder="Brief summary of your article..."
               value={excerpt()}
               onInput={(e) => setExcerpt(e.currentTarget.value)}
-              class="w-full bg-neutral-100 border-2 border-black p-4 text-base font-mono text-black placeholder-neutral-500 focus:outline-none focus:bg-white resize-none"
+              class="w-full bg-neutral-100 dark:bg-black/50 border-2 border-black dark:border-neutral-700 p-4 text-base font-mono text-black dark:text-white placeholder-neutral-500 focus:outline-none focus:bg-white dark:focus:bg-black resize-none"
               rows="3"
             ></textarea>
           </div>
 
           {/* Markdown Editor */}
-          <div class="flex-1 bg-white border-4 border-black flex flex-col min-h-[600px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <div class="flex-1 bg-white dark:bg-neutral-900 border-4 border-black dark:border-neutral-700 flex flex-col min-h-[600px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]">
             {/* Toolbar */}
-            <div class="border-b-4 border-black p-2 flex flex-wrap gap-2 bg-neutral-100">
-              <button onClick={() => handleToolbar('bold')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Bold"><Bold class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('italic')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Italic"><Italic class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('heading')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Heading"><Heading class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('quote')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Quote"><Quote class="w-4 h-4" /></button>
+            <div class="border-b-4 border-black dark:border-neutral-700 p-2 flex flex-wrap gap-2 bg-neutral-100 dark:bg-neutral-800">
+              <button
+                onClick={() => handleToolbar('bold')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Bold"
+              >
+                <Bold class="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleToolbar('italic')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Italic"
+              >
+                <Italic class="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleToolbar('heading')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Heading"
+              >
+                <Heading class="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleToolbar('quote')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Quote"
+              >
+                <Quote class="w-4 h-4" />
+              </button>
 
               <div class="w-px h-6 bg-black mx-2 self-center"></div>
 
-              <button onClick={() => handleToolbar('link')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Link"><Link class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('image')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Media Library"><ImageIcon class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('youtube')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="YouTube"><Youtube class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('embed')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Embed"><Box class="w-4 h-4" /></button>
+              <button
+                onClick={() => handleToolbar('link')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Link"
+              >
+                <Link class="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleToolbar('image')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Media Library"
+              >
+                <ImageIcon class="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleToolbar('youtube')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="YouTube"
+              >
+                <Youtube class="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleToolbar('embed')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Embed"
+              >
+                <Box class="w-4 h-4" />
+              </button>
 
               <div class="w-px h-6 bg-black mx-2 self-center"></div>
 
-              <button onClick={() => handleToolbar('code')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Code"><Code class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('list')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="List"><List class="w-4 h-4" /></button>
-              <button onClick={() => handleToolbar('table')} class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Table"><TableIcon class="w-4 h-4" /></button>
+              <button
+                onClick={() => handleToolbar('code')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Code"
+              >
+                <Code class="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleToolbar('list')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="List"
+              >
+                <List class="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleToolbar('table')}
+                class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                title="Table"
+              >
+                <TableIcon class="w-4 h-4" />
+              </button>
 
               <div class="w-px h-6 bg-black mx-2 self-center"></div>
 
@@ -884,7 +977,10 @@ export default function CreateArticle() {
                 mode="range"
                 value={toolbarDateRange()}
                 trigger={
-                  <button class="p-2 border-2 border-transparent hover:border-black hover:bg-white hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all" title="Insert Date Range">
+                  <button
+                    class="p-2 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-neutral-700 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)] transition-all text-black dark:text-white"
+                    title="Insert Date Range"
+                  >
                     <Calendar class="w-4 h-4" />
                   </button>
                 }
@@ -892,9 +988,19 @@ export default function CreateArticle() {
                   const range = val as { start: Date | null; end: Date | null };
                   setToolbarDateRange(range);
                   if (range.start && range.end) {
-                    const formatDate = (d: Date) => d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-                    insertText(`${formatDate(range.start)} - ${formatDate(range.end)}`);
-                    setTimeout(() => setToolbarDateRange({ start: null, end: null }), 200);
+                    const formatDate = (d: Date) =>
+                      d.toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      });
+                    insertText(
+                      `${formatDate(range.start)} - ${formatDate(range.end)}`
+                    );
+                    setTimeout(
+                      () => setToolbarDateRange({ start: null, end: null }),
+                      200
+                    );
                   }
                 }}
               />
@@ -908,7 +1014,9 @@ export default function CreateArticle() {
               </button>
 
               <Show when={isUploading()}>
-                <span class="text-xs font-mono font-bold text-primary animate-pulse mr-4 self-center uppercase">Uploading...</span>
+                <span class="text-xs font-mono font-bold text-primary animate-pulse mr-4 self-center uppercase">
+                  Uploading...
+                </span>
               </Show>
 
               <button
@@ -926,13 +1034,17 @@ export default function CreateArticle() {
               onInput={(e) => setContent(e.currentTarget.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              class="flex-1 w-full bg-white p-6 font-mono text-sm leading-relaxed resize-none outline-none text-black placeholder-neutral-400"
+              class="flex-1 w-full bg-white dark:bg-neutral-900 p-6 font-mono text-sm leading-relaxed resize-none outline-none text-black dark:text-white placeholder-neutral-400"
               placeholder="Start writing your masterpiece... (Paste images supported)"
             ></textarea>
 
             <div class="border-t-4 border-black p-2 px-6 flex justify-between items-center bg-neutral-100">
-              <span class="text-[10px] font-mono font-bold text-neutral-500 uppercase">Markdown Supported</span>
-              <span class="text-[10px] font-mono font-bold text-neutral-500 uppercase">{content().length} Chars</span>
+              <span class="text-[10px] font-mono font-bold text-neutral-500 uppercase">
+                Markdown Supported
+              </span>
+              <span class="text-[10px] font-mono font-bold text-neutral-500 uppercase">
+                {content().length} Chars
+              </span>
             </div>
           </div>
         </div>
@@ -948,7 +1060,9 @@ export default function CreateArticle() {
 
             <div class="space-y-4">
               <div class="flex flex-col gap-2 group">
-                <span class="font-mono text-xs font-bold uppercase text-neutral-500">Status</span>
+                <span class="font-mono text-xs font-bold uppercase text-neutral-500">
+                  Status
+                </span>
                 <SearchableSelect
                   options={[
                     { label: 'DRAFT', value: 'draft' },
@@ -961,7 +1075,9 @@ export default function CreateArticle() {
                 />
               </div>
               <div class="flex flex-col gap-2 group">
-                <span class="font-mono text-xs font-bold uppercase text-neutral-500">Visibility</span>
+                <span class="font-mono text-xs font-bold uppercase text-neutral-500">
+                  Visibility
+                </span>
                 <SearchableSelect
                   options={[
                     { label: 'PUBLIC', value: 'public' },
@@ -974,11 +1090,13 @@ export default function CreateArticle() {
                 />
               </div>
               <div class="flex flex-col gap-2 group">
-                <span class="font-mono text-xs font-bold uppercase text-neutral-500">Schedule</span>
+                <span class="font-mono text-xs font-bold uppercase text-neutral-500">
+                  Schedule
+                </span>
                 <DatePicker
                   value={scheduledDate()}
                   onChange={setScheduledDate}
-                  position='center'
+                  position="center"
                   placeholder="PICK A DATE"
                 />
               </div>
@@ -987,13 +1105,18 @@ export default function CreateArticle() {
 
           {/* Tags */}
           <div class="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <h3 class="font-oswald text-xl font-bold uppercase border-b-4 border-black pb-2 mb-6">Tags</h3>
+            <h3 class="font-oswald text-xl font-bold uppercase border-b-4 border-black pb-2 mb-6">
+              Tags
+            </h3>
             <div class="flex flex-wrap gap-2 mb-4">
               <For each={selectedTags()}>
                 {(tagId) => (
                   <span class="px-2 py-1 bg-black text-white text-[10px] font-mono font-bold uppercase flex items-center gap-1 border-2 border-black">
                     {getTagName(tagId)}
-                    <button onClick={() => removeTag(tagId)} class="hover:text-primary transition-colors">
+                    <button
+                      onClick={() => removeTag(tagId)}
+                      class="hover:text-primary transition-colors"
+                    >
                       <X class="w-3 h-3" />
                     </button>
                   </span>
@@ -1002,7 +1125,9 @@ export default function CreateArticle() {
             </div>
             <div class="relative">
               <SearchableSelect
-                options={availableTags().filter((t) => !selectedTags().includes(t.value))}
+                options={availableTags().filter(
+                  (t) => !selectedTags().includes(t.value)
+                )}
                 onChange={addTag}
                 placeholder="ADD TAG..."
               />
@@ -1011,7 +1136,9 @@ export default function CreateArticle() {
 
           {/* Featured Image */}
           <div class="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-            <h3 class="font-oswald text-xl font-bold uppercase border-b-4 border-black pb-2 mb-6">Featured Image</h3>
+            <h3 class="font-oswald text-xl font-bold uppercase border-b-4 border-black pb-2 mb-6">
+              Featured Image
+            </h3>
             <div
               onClick={() => openMediaModal('featured')}
               class="border-4 border-dashed border-neutral-300 bg-neutral-50 aspect-video flex flex-col items-center justify-center hover:border-black hover:bg-primary/20 transition-all cursor-pointer group relative overflow-hidden"
@@ -1021,12 +1148,19 @@ export default function CreateArticle() {
                 fallback={
                   <>
                     <Upload class="w-8 h-8 text-neutral-400 group-hover:text-black mb-2 transition-colors" />
-                    <span class="font-mono text-[10px] font-bold uppercase text-neutral-400 group-hover:text-black transition-colors">Select Image</span>
+                    <span class="font-mono text-[10px] font-bold uppercase text-neutral-400 group-hover:text-black transition-colors">
+                      Select Image
+                    </span>
                   </>
                 }
               >
-                <img src={featuredImage()!} class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
-                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold uppercase text-xs">Change</div>
+                <img
+                  src={featuredImage()!}
+                  class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+                />
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold uppercase text-xs">
+                  Change
+                </div>
               </Show>
             </div>
           </div>
@@ -1039,8 +1173,13 @@ export default function CreateArticle() {
           <div class="w-full max-w-7xl h-full flex flex-col relative bg-white border-4 border-black shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
             {/* Modal Header */}
             <div class="h-16 border-b-4 border-black flex items-center justify-between px-8 bg-neutral-100 shrink-0">
-              <h2 class="font-oswald font-bold uppercase text-2xl text-black">Preview Mode</h2>
-              <button onClick={() => setIsPreviewOpen(false)} class="bg-black text-white hover:bg-primary hover:text-black p-2 border-2 border-black transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]">
+              <h2 class="font-oswald font-bold uppercase text-2xl text-black">
+                Preview Mode
+              </h2>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                class="bg-black text-white hover:bg-primary hover:text-black p-2 border-2 border-black transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+              >
                 <X class="w-6 h-6" />
               </button>
             </div>
@@ -1048,9 +1187,14 @@ export default function CreateArticle() {
             <div class="flex-1 overflow-y-auto w-full p-8 md:p-12">
               <div class="max-w-5xl mx-auto grid grid-cols-12 gap-12">
                 <div class="col-span-12 lg:col-span-9 prose prose-lg max-w-none">
-                  <h1 class="font-oswald text-6xl font-black uppercase leading-none mb-8 pb-4 border-b-8 border-black">{title() || 'Untitled'}</h1>
+                  <h1 class="font-oswald text-6xl font-black uppercase leading-none mb-8 pb-4 border-b-8 border-black">
+                    {title() || 'Untitled'}
+                  </h1>
                   {featuredImage() && (
-                    <img src={featuredImage()!} class="w-full max-h-[500px] object-cover mb-12 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" />
+                    <img
+                      src={featuredImage()!}
+                      class="w-full max-h-[500px] object-cover mb-12 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+                    />
                   )}
                   <div class="font-mono" innerHTML={htmlContent()} />
                 </div>
@@ -1071,27 +1215,53 @@ export default function CreateArticle() {
           <div class="bg-white border-4 border-black w-full max-w-6xl h-[90vh] flex flex-col shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] relative">
             <div class="h-16 border-b-4 border-black flex items-center justify-between px-6 bg-neutral-100 shrink-0">
               <div class="flex items-center gap-4">
-                <h2 class="font-oswald font-bold uppercase text-2xl text-black">Media Library</h2>
+                <h2 class="font-oswald font-bold uppercase text-2xl text-black">
+                  Media Library
+                </h2>
                 <div class="relative hidden md:block">
                   <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-black" />
-                  <input type="text" placeholder="SEARCH..." value={mediaSearch()} onInput={(e) => setMediaSearch(e.currentTarget.value)} class="bg-white border-2 border-black pl-10 pr-4 py-1 text-xs font-bold uppercase focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none w-64 transition-all" />
+                  <input
+                    type="text"
+                    placeholder="SEARCH..."
+                    value={mediaSearch()}
+                    onInput={(e) => setMediaSearch(e.currentTarget.value)}
+                    class="bg-white border-2 border-black pl-10 pr-4 py-1 text-xs font-bold uppercase focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none w-64 transition-all"
+                  />
                 </div>
               </div>
-              <button onClick={() => setIsMediaModalOpen(false)} class="text-black hover:text-red-600 transition-colors"><X class="w-8 h-8" /></button>
+              <button
+                onClick={() => setIsMediaModalOpen(false)}
+                class="text-black hover:text-red-600 transition-colors"
+              >
+                <X class="w-8 h-8" />
+              </button>
             </div>
 
             <div class="flex flex-1 overflow-hidden">
               <div class="flex-1 overflow-y-auto p-6 border-r-4 border-black bg-neutral-50">
                 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  <div onClick={() => fileInputRef?.click()} class="aspect-square bg-white border-4 border-dashed border-black flex flex-col items-center justify-center cursor-pointer hover:bg-primary/20 transition-all">
+                  <div
+                    onClick={() => fileInputRef?.click()}
+                    class="aspect-square bg-white border-4 border-dashed border-black flex flex-col items-center justify-center cursor-pointer hover:bg-primary/20 transition-all"
+                  >
                     <Upload class="w-8 h-8 text-black mb-2" />
-                    <span class="text-[10px] font-bold uppercase text-black">Upload New</span>
+                    <span class="text-[10px] font-bold uppercase text-black">
+                      Upload New
+                    </span>
                   </div>
                   <For each={getFilteredMedia()}>
                     {(item) => (
-                      <div onClick={() => selectMediaItem(item.url, item.name)} class="aspect-square border-4 border-black cursor-pointer relative group overflow-hidden bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-none transition-all">
-                        <img src={item.url} class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
-                        <div class="absolute bottom-0 left-0 right-0 bg-black text-white text-[10px] font-mono p-1 truncate">{item.name}</div>
+                      <div
+                        onClick={() => selectMediaItem(item.url, item.name)}
+                        class="aspect-square border-4 border-black cursor-pointer relative group overflow-hidden bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-none transition-all"
+                      >
+                        <img
+                          src={item.url}
+                          class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+                        />
+                        <div class="absolute bottom-0 left-0 right-0 bg-black text-white text-[10px] font-mono p-1 truncate">
+                          {item.name}
+                        </div>
                       </div>
                     )}
                   </For>
@@ -1100,26 +1270,94 @@ export default function CreateArticle() {
               {/* Sidebar Options */}
               <Show when={mediaModalTarget() === 'editor'}>
                 <div class="w-72 bg-white p-6 overflow-y-auto shrink-0 border-l-4 border-black">
-                  <h3 class="font-oswald font-bold uppercase mb-6 text-lg border-b-4 border-black pb-2">Image Options</h3>
+                  <h3 class="font-oswald font-bold uppercase mb-6 text-lg border-b-4 border-black pb-2">
+                    Image Options
+                  </h3>
                   <div class="mb-6">
-                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">Width</label>
+                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">
+                      Width
+                    </label>
                     <div class="flex gap-2">
-                      <button onClick={() => setImgWidth('100%')} class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${imgWidth() === '100%' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}>Full</button>
-                      <button onClick={() => setImgWidth('50%')} class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${imgWidth() === '50%' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}>50%</button>
-                      <button onClick={() => setImgWidth('25%')} class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${imgWidth() === '25%' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}>25%</button>
+                      <button
+                        onClick={() => setImgWidth('100%')}
+                        class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${
+                          imgWidth() === '100%'
+                            ? 'bg-black text-white'
+                            : 'bg-white hover:bg-neutral-200'
+                        }`}
+                      >
+                        Full
+                      </button>
+                      <button
+                        onClick={() => setImgWidth('50%')}
+                        class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${
+                          imgWidth() === '50%'
+                            ? 'bg-black text-white'
+                            : 'bg-white hover:bg-neutral-200'
+                        }`}
+                      >
+                        50%
+                      </button>
+                      <button
+                        onClick={() => setImgWidth('25%')}
+                        class={`flex-1 py-1 text-xs border-2 border-black font-bold uppercase ${
+                          imgWidth() === '25%'
+                            ? 'bg-black text-white'
+                            : 'bg-white hover:bg-neutral-200'
+                        }`}
+                      >
+                        25%
+                      </button>
                     </div>
                   </div>
                   <div class="mb-6">
-                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">Alignment</label>
+                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">
+                      Alignment
+                    </label>
                     <div class="flex gap-2">
-                      <button onClick={() => setImgAlign('left')} class={`p-2 border-2 border-black ${imgAlign() === 'left' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}><AlignLeft class="w-4 h-4" /></button>
-                      <button onClick={() => setImgAlign('center')} class={`p-2 border-2 border-black ${imgAlign() === 'center' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}><AlignCenter class="w-4 h-4" /></button>
-                      <button onClick={() => setImgAlign('right')} class={`p-2 border-2 border-black ${imgAlign() === 'right' ? 'bg-black text-white' : 'bg-white hover:bg-neutral-200'}`}><AlignRight class="w-4 h-4" /></button>
+                      <button
+                        onClick={() => setImgAlign('left')}
+                        class={`p-2 border-2 border-black ${
+                          imgAlign() === 'left'
+                            ? 'bg-black text-white'
+                            : 'bg-white hover:bg-neutral-200'
+                        }`}
+                      >
+                        <AlignLeft class="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setImgAlign('center')}
+                        class={`p-2 border-2 border-black ${
+                          imgAlign() === 'center'
+                            ? 'bg-black text-white'
+                            : 'bg-white hover:bg-neutral-200'
+                        }`}
+                      >
+                        <AlignCenter class="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setImgAlign('right')}
+                        class={`p-2 border-2 border-black ${
+                          imgAlign() === 'right'
+                            ? 'bg-black text-white'
+                            : 'bg-white hover:bg-neutral-200'
+                        }`}
+                      >
+                        <AlignRight class="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                   <div class="mb-6">
-                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">Alt Text</label>
-                    <input type="text" placeholder="Description..." value={imgAlt()} onInput={(e) => setImgAlt(e.currentTarget.value)} class="w-full bg-white border-2 border-black p-2 text-xs font-mono outline-none focus:bg-neutral-100" />
+                    <label class="block text-xs font-mono font-bold uppercase text-neutral-500 mb-2">
+                      Alt Text
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Description..."
+                      value={imgAlt()}
+                      onInput={(e) => setImgAlt(e.currentTarget.value)}
+                      class="w-full bg-white border-2 border-black p-2 text-xs font-mono outline-none focus:bg-neutral-100"
+                    />
                   </div>
                 </div>
               </Show>
@@ -1133,23 +1371,54 @@ export default function CreateArticle() {
         <div class="fixed inset-0 z-60 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
           <div class="bg-white border-4 border-black w-full max-w-2xl shadow-[16px_16px_0px_0px_rgba(255,255,255,1)] relative flex flex-col max-h-[85vh]">
             <div class="h-14 border-b-4 border-black flex items-center justify-between px-6 bg-primary shrink-0">
-              <h2 class="font-oswald font-bold uppercase text-xl text-black">Keyboard Shortcuts</h2>
-              <button onClick={() => setIsShortcutsModalOpen(false)} class="text-black hover:text-white transition-colors"><X class="w-6 h-6" /></button>
+              <h2 class="font-oswald font-bold uppercase text-xl text-black">
+                Keyboard Shortcuts
+              </h2>
+              <button
+                onClick={() => setIsShortcutsModalOpen(false)}
+                class="text-black hover:text-white transition-colors"
+              >
+                <X class="w-6 h-6" />
+              </button>
             </div>
             <div class="p-6 overflow-y-auto bg-white">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <h3 class="font-mono text-xs font-bold uppercase text-black mb-4 border-b-2 border-black pb-2">Formatting</h3>
+                  <h3 class="font-mono text-xs font-bold uppercase text-black mb-4 border-b-2 border-black pb-2">
+                    Formatting
+                  </h3>
                   <ul class="space-y-2 text-xs font-bold font-mono text-neutral-600">
-                    <li class="flex justify-between items-center"><span>Bold</span> <div><Kbd>Ctrl</Kbd> + <Kbd>B</Kbd></div></li>
-                    <li class="flex justify-between items-center"><span>Italic</span> <div><Kbd>Ctrl</Kbd> + <Kbd>I</Kbd></div></li>
-                    <li class="flex justify-between items-center"><span>Strikethrough</span> <div><Kbd>Alt</Kbd> + <Kbd>S</Kbd></div></li>
+                    <li class="flex justify-between items-center">
+                      <span>Bold</span>{' '}
+                      <div>
+                        <Kbd>Ctrl</Kbd> + <Kbd>B</Kbd>
+                      </div>
+                    </li>
+                    <li class="flex justify-between items-center">
+                      <span>Italic</span>{' '}
+                      <div>
+                        <Kbd>Ctrl</Kbd> + <Kbd>I</Kbd>
+                      </div>
+                    </li>
+                    <li class="flex justify-between items-center">
+                      <span>Strikethrough</span>{' '}
+                      <div>
+                        <Kbd>Alt</Kbd> + <Kbd>S</Kbd>
+                      </div>
+                    </li>
                   </ul>
                 </div>
                 <div>
-                  <h3 class="font-mono text-xs font-bold uppercase text-black mb-4 border-b-2 border-black pb-2">Headers</h3>
+                  <h3 class="font-mono text-xs font-bold uppercase text-black mb-4 border-b-2 border-black pb-2">
+                    Headers
+                  </h3>
                   <ul class="space-y-2 text-xs font-bold font-mono text-neutral-600">
-                    <li class="flex justify-between items-center"><span>H1 - H6</span> <div><Kbd>Ctrl</Kbd> + <Kbd>Alt</Kbd> + <Kbd>Number</Kbd></div></li>
+                    <li class="flex justify-between items-center">
+                      <span>H1 - H6</span>{' '}
+                      <div>
+                        <Kbd>Ctrl</Kbd> + <Kbd>Alt</Kbd> + <Kbd>Number</Kbd>
+                      </div>
+                    </li>
                   </ul>
                 </div>
               </div>

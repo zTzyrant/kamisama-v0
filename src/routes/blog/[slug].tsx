@@ -1,5 +1,13 @@
-import { createMemo, Show, For, createEffect, createSignal } from 'solid-js';
+import {
+  createMemo,
+  Show,
+  For,
+  createEffect,
+  createSignal,
+  onCleanup
+} from 'solid-js';
 import { useParams, A } from '@solidjs/router';
+import DOMPurify from 'dompurify';
 import { Title } from '@solidjs/meta';
 import { blogPosts } from '~/lib/blog-data';
 import Button from '~/components/ui/Button';
@@ -8,13 +16,9 @@ import BlogHeader from '~/components/BlogHeader';
 import BlogFooter from '~/components/BlogFooter';
 import TableOfContents from '~/components/TableOfContents';
 import { extractHeadings, slugify, type TocItem } from '~/lib/toc';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+import { configureMarkdown } from '~/lib/markdown';
 
-marked.setOptions({
-  breaks: true,
-  gfm: true
-});
+const marked = configureMarkdown();
 
 export default function BlogDetail() {
   const params = useParams();
@@ -31,13 +35,7 @@ export default function BlogDetail() {
       const headings = extractHeadings(raw);
       setTocHeadings(headings);
 
-      const renderer = new marked.Renderer();
-      renderer.heading = ({ text, depth }) => {
-        const id = slugify(text);
-        return `<h${depth} id="${id}" class="scroll-mt-24">${text}</h${depth}>`;
-      };
-
-      const parsed = await marked.parse(raw, { renderer });
+      const parsed = await marked.parse(raw);
       // Configure allowed domains for iframes
       const allowedDomains = [
         'www.youtube.com',
@@ -99,6 +97,24 @@ export default function BlogDetail() {
 
       setHtmlContent(clean);
     }
+  });
+
+  // Global Copy Button Handler
+  createEffect(() => {
+    const handleCopy = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.matches('.copy-code-btn')) {
+        const code = decodeURIComponent(target.dataset.code || '');
+        navigator.clipboard.writeText(code).then(() => {
+          const originalText = target.innerText;
+          target.innerText = 'COPIED!';
+          setTimeout(() => (target.innerText = originalText), 2000);
+        });
+      }
+    };
+
+    document.addEventListener('click', handleCopy);
+    onCleanup(() => document.removeEventListener('click', handleCopy));
   });
 
   return (
