@@ -1,40 +1,43 @@
-name: Deploy SolidJS to Main Domain
+name: Deploy SolidJS SSR
 
 on:
   push:
-    branches: [main]
+    branches: [ master ]
 
 jobs:
   deploy:
     runs-on: [self-hosted, hera-eye]
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Build with Bun
+      - name: Setup Environment File
         run: |
-          export PATH=$HOME/.bun/bin:$HOME/.nvm/versions/node/v24.13.0/bin:$PATH
+          # Membuat file .env dari GitHub Secrets
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env
+          echo "PORT=3012" >> .env
 
+      - name: Build and Deploy
+        run: |
+          # Load PATH agar command bun & pm2 ditemukan
+          export PATH=$HOME/.bun/bin:$HOME/.nvm/versions/node/v24.13.0/bin:$PATH
+          
+          # Install dan Build
           bun install
           bun run build
 
+          # Restart aplikasi dengan PM2 (Mode SSR)
+          # Kita arahkan ke output server Bun
           pm2 delete solid-app || true
-          pm2 start "bun x serve -s ./dist -p 3012" --name "solid-app"
+          PORT=3012 pm2 start "bun .output/server/index.mjs" --name "solid-app"
 
       - name: Update Cloudflared Config
         run: |
           DOMAIN="kamisama-v0.my.id"
           PORT="3012"
-
           if ! grep -q "hostname: $DOMAIN" /etc/cloudflared/config.yml; then
-            echo "Adding $DOMAIN to cloudflared config..."
-            
             sudo sed -i "/- service: http_status:404/i \  - hostname: $DOMAIN\n    service: http://localhost:$PORT" /etc/cloudflared/config.yml
-            
             sudo systemctl restart cloudflared
-          else
-            echo "Domain $DOMAIN sudah terdaftar di config.yml"
           fi
 
       - name: Update Cloudflare DNS
