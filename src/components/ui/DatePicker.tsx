@@ -97,22 +97,24 @@ export default function DatePicker(props: DatePickerProps) {
   };
 
   createEffect(() => {
-    if (isOpen()) {
-      checkOverflow();
-      document.addEventListener('mousedown', handleClickOutside);
-      window.addEventListener('resize', checkOverflow);
-      window.addEventListener('scroll', checkOverflow, true);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('resize', checkOverflow);
-      window.removeEventListener('scroll', checkOverflow, true);
-    }
+    if (typeof window !== 'undefined') {
+      if (isOpen()) {
+        checkOverflow();
+        document.addEventListener('mousedown', handleClickOutside);
+        window.addEventListener('resize', checkOverflow);
+        window.addEventListener('scroll', checkOverflow, true);
+      } else {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('resize', checkOverflow);
+        window.removeEventListener('scroll', checkOverflow, true);
+      }
 
-    onCleanup(() => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('resize', checkOverflow);
-      window.removeEventListener('scroll', checkOverflow, true);
-    });
+      onCleanup(() => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('resize', checkOverflow);
+        window.removeEventListener('scroll', checkOverflow, true);
+      });
+    }
   });
 
   const daysInMonth = (month: number, year: number) =>

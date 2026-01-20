@@ -9,7 +9,7 @@ const getStoredTheme = (): Theme | null => {
   return null;
 };
 
-const [theme, setTheme] = createSignal<Theme>((getStoredTheme() as Theme) || 'system');
+const [theme, setTheme] = createSignal<Theme>('system');
 
 export const getTheme = theme;
 export { setTheme };

@@ -13,15 +13,19 @@ export default function Nav() {
   const toggle = () => setIsOpen(!isOpen());
 
   createEffect(() => {
-    if (isOpen()) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+    if (typeof window !== 'undefined') {
+      if (isOpen()) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
     }
   });
 
   onCleanup(() => {
-    document.body.style.overflow = '';
+    if (typeof window !== 'undefined') {
+      document.body.style.overflow = '';
+    }
   });
 
   return (
@@ -95,11 +99,10 @@ export default function Nav() {
 
       {/* Mobile Overlay */}
       <div
-        class={`fixed inset-0 z-40 bg-black flex flex-col items-center justify-center transition-all duration-500 ease-in-out ${
-          isOpen()
+        class={`fixed inset-0 z-40 bg-black flex flex-col items-center justify-center transition-all duration-500 ease-in-out ${isOpen()
             ? 'opacity-100 pointer-events-auto translate-y-0'
             : 'opacity-0 pointer-events-none -translate-y-full'
-        }`}
+          }`}
       >
         <nav class="flex flex-col gap-8 text-center">
           <A

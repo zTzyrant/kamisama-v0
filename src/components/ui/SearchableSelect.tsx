@@ -1,4 +1,4 @@
-import { createSignal, createEffect, For, Show } from "solid-js";
+import { createSignal, createEffect, For, Show, onCleanup } from "solid-js";
 import { ChevronDown, X, Check } from "lucide-solid";
 import clsx from "clsx";
 
@@ -48,15 +48,17 @@ export default function SearchableSelect(props: SearchableSelectProps) {
     };
 
     createEffect(() => {
-        if (isOpen()) {
-            document.addEventListener("mousedown", handleClickOutside);
-            // Focus input when opened
-            setTimeout(() => inputRef?.focus(), 50);
-        } else {
-            document.removeEventListener("mousedown", handleClickOutside);
+        if (typeof window !== 'undefined') {
+            if (isOpen()) {
+                document.addEventListener("mousedown", handleClickOutside);
+                // Focus input when opened
+                setTimeout(() => inputRef?.focus(), 50);
+            } else {
+                document.removeEventListener("mousedown", handleClickOutside);
+            }
+            // Cleanup
+            onCleanup(() => document.removeEventListener("mousedown", handleClickOutside));
         }
-        // Cleanup
-        return () => document.removeEventListener("mousedown", handleClickOutside);
     });
 
     const handleSelect = (val: string) => {

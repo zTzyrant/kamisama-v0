@@ -16,27 +16,31 @@ export default function InputModal(props: InputModalProps) {
     let inputRef!: HTMLInputElement;
 
     createEffect(() => {
-        if (props.isOpen) {
-            setValue(props.initialValue || "");
-            // Focus input after a short delay to ensure modal is rendered
-            setTimeout(() => inputRef?.focus(), 50);
+        if (typeof window !== 'undefined') {
+            if (props.isOpen) {
+                setValue(props.initialValue || "");
+                // Focus input after a short delay to ensure modal is rendered
+                setTimeout(() => inputRef?.focus(), 50);
 
-            // Aggressive Scroll Lock
-            document.body.style.setProperty('overflow', 'hidden', 'important');
-            document.documentElement.style.setProperty('overflow', 'hidden', 'important');
-            document.body.style.setProperty('touch-action', 'none', 'important');
-        } else {
-            document.body.style.removeProperty('overflow');
-            document.documentElement.style.removeProperty('overflow');
-            document.body.style.removeProperty('touch-action');
+                // Aggressive Scroll Lock
+                document.body.style.setProperty('overflow', 'hidden', 'important');
+                document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+                document.body.style.setProperty('touch-action', 'none', 'important');
+            } else {
+                document.body.style.removeProperty('overflow');
+                document.documentElement.style.removeProperty('overflow');
+                document.body.style.removeProperty('touch-action');
+            }
         }
     });
 
     onCleanup(() => {
-        if (typeof document !== 'undefined') {
-            document.body.style.overflow = '';
-            document.documentElement.style.overflow = '';
-            document.body.style.touchAction = '';
+        if (typeof window !== 'undefined') {
+            if (typeof document !== 'undefined') {
+                document.body.style.overflow = '';
+                document.documentElement.style.overflow = '';
+                document.body.style.touchAction = '';
+            }
         }
     });
 

@@ -13,17 +13,21 @@ export default function ThemeModal(props: ThemeModalProps) {
 
     // Sync with actual theme on mount/open
     createEffect(() => {
-        if (props.isOpen) {
-            setActiveTheme(getTheme() || 'system');
-            // Lock scroll
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
+        if (typeof window !== 'undefined') {
+            if (props.isOpen) {
+                setActiveTheme(getTheme() || 'system');
+                // Lock scroll
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
         }
     });
 
     onCleanup(() => {
-        document.body.style.overflow = '';
+        if (typeof window !== 'undefined') {
+            document.body.style.overflow = '';
+        }
     });
 
     const handleSetTheme = (theme: 'light' | 'dark' | 'rebel' | 'system') => {

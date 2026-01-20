@@ -1,4 +1,4 @@
-import { createSignal, createResource, createContext, useContext, type ParentComponent } from 'solid-js';
+import { createSignal, onMount, createResource, createContext, useContext, type ParentComponent } from 'solid-js';
 import { authApi, type User } from './api';
 
 interface AuthState {
@@ -58,7 +58,9 @@ function makeAuthContext() {
     };
 
     // Initial check
-    checkAuth();
+    onMount(() => {
+        checkAuth();
+    });
 
     return {
         user,

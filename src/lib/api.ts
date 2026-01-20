@@ -41,9 +41,11 @@ const api = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
         }
         console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, config);
         return config;
@@ -64,7 +66,10 @@ api.interceptors.response.use(
         // Handle 401 & Refresh Token
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+            let refreshToken = null;
+            if (typeof window !== 'undefined') {
+                refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+            }
 
             if (refreshToken) {
                 try {
@@ -73,8 +78,10 @@ api.interceptors.response.use(
                     });
 
                     if (data.status === 'success') {
-                        localStorage.setItem(ACCESS_TOKEN_KEY, data.data.token);
-                        localStorage.setItem(REFRESH_TOKEN_KEY, data.data.refresh_token);
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem(ACCESS_TOKEN_KEY, data.data.token);
+                            localStorage.setItem(REFRESH_TOKEN_KEY, data.data.refresh_token);
+                        }
 
                         // Retry original request
                         if (originalRequest.headers) {
@@ -84,14 +91,16 @@ api.interceptors.response.use(
                     }
                 } catch (refreshError) {
                     // Refresh failed, logout
-                    localStorage.removeItem(ACCESS_TOKEN_KEY);
-                    localStorage.removeItem(REFRESH_TOKEN_KEY);
-                    window.location.href = '/login';
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem(ACCESS_TOKEN_KEY);
+                        localStorage.removeItem(REFRESH_TOKEN_KEY);
+                        window.location.href = '/login';
+                    }
                 }
             } else {
                 // No refresh token, but don't force logout immediately if we are just checking auth status
                 // For now, let's just clear tokens only if we are sure
-                if (localStorage.getItem(ACCESS_TOKEN_KEY)) {
+                if (typeof window !== 'undefined' && localStorage.getItem(ACCESS_TOKEN_KEY)) {
                     localStorage.removeItem(ACCESS_TOKEN_KEY);
                     localStorage.removeItem(REFRESH_TOKEN_KEY);
                     // window.location.href = '/login'; 
