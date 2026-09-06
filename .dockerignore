@@ -1,0 +1,11 @@
+# .env TIDAK di-ignore di sini dengan sengaja: VITE_API_URL adalah
+# build-time embed, jadi .env yang di-generate CI dari secrets.ENV_FILE
+# harus tersedia saat `docker build`. Image hanya lokal (tidak di-push).
+node_modules
+.output
+.vinxi
+.git
+.github
+dist
+*.log
+.DS_Store

@@ -1,45 +1,68 @@
-name: Deploy SolidJS SSR
-
+# Workflow — GitHub Actions, org kamisama-v0, runner kamisama-v0.
+# Konvensi 3-variable (JANGAN hardcode port/domain di YAML):
+#   1. vars.LIVE_PORT      — GitHub Variable (tab Variables). Port bukan rahasia.
+#      Deploy script derive sisanya: COPY=LIVE-500, FRONT=3000+(LIVE-5000).
+#   2. secrets.ENV_FILE    — GitHub Secret berisi SELURUH .env production
+#      (copy-paste dari .env lokal yang jalan). Pola kantor (CONFIG_CONTENT).
+#   3. vars.PRODUCTION_URL — GitHub Variable, URL publik penuh (https://v0.kamisama-v0.my.id).
+#      Dipakai 2×: override domain di .env (single source of truth) + auto-register subdomain.
+name: deploy
 on:
   push:
-    branches: [ main ]
+    branches: [main, master]
 
 jobs:
-  deploy:
-    runs-on: [self-hosted, hera-eye]
+  build-and-deploy:
+    runs-on: [self-hosted, kamisama]
+    defaults:
+      run:
+        working-directory: .
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Environment File
+      - name: Generate .env dari secrets (pola kantor — 1 file-secret, .env tak pernah di Git)
+        # Secrets via env: (bukan interpolasi langsung) agar kutip/spasi/$ di dalam
+        # value tidak dimaknai shell.
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
         run: |
-          # Membuat file .env dari GitHub Secrets
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env
-          echo "PORT=3012" >> .env
+          test -n "$ENV_FILE"
+          test -n "$PRODUCTION_URL"
+          printf "%s" "$ENV_FILE" > .env
+          # Domain single source of truth = vars.PRODUCTION_URL (timpa yang dari file)
+          grep -v -E "^(PRODUCTION_URL|BASE_URL)=" .env > .env.tmp && mv .env.tmp .env
+          printf "PRODUCTION_URL=%s\nBASE_URL=%s\n" "$PRODUCTION_URL" "$PRODUCTION_URL" >> .env
+          chmod 600 .env
 
-      - name: Build and Deploy
+      - name: Build image lokal (D2 — tanpa registry)
         run: |
-          # Load PATH agar command bun & pm2 ditemukan
-          export PATH=$HOME/.bun/bin:$HOME/.nvm/versions/node/v24.13.0/bin:$PATH
-          
-          # Install dan Build
-          bun install
-          bun run build
+          docker build \
+            -t kamisama/kamisama-v0:${{ github.sha }} \
+            -t kamisama/kamisama-v0:latest .
 
-          # Restart aplikasi dengan PM2 (Mode SSR)
-          # Kita arahkan ke output server Bun
-          pm2 delete solid-app || true
-          PORT=3012 pm2 start "bun .output/server/index.mjs" --name "solid-app"
-
-      - name: Update Cloudflared Config
+      - name: Migrate/seed one-off bila ada (pola kantor D9)
         run: |
-          DOMAIN="kamisama-v0.my.id"
-          PORT="3012"
-          if ! grep -q "hostname: $DOMAIN" /etc/cloudflared/config.yml; then
-            sudo sed -i "/- service: http_status:404/i \  - hostname: $DOMAIN\n    service: http://localhost:$PORT" /etc/cloudflared/config.yml
-            sudo systemctl restart cloudflared
+          if grep -q "migrate" package.json Cargo.toml go.mod 2>/dev/null; then
+            docker run --rm --env-file .env \
+              kamisama/kamisama-v0:${{ github.sha }} ./migrate || echo "no migrate step, skip"
+          else
+            echo "no migrate step, skip"
           fi
 
-      - name: Update Cloudflare DNS
+      - name: Blue-green deploy (D3 — 0 downtime via nginx flip)
+        run: ~/bin/kamisama-deploy.sh kamisama-v0 ${{ vars.LIVE_PORT }} kamisama/kamisama-v0:${{ github.sha }}
+
+      - name: Seed prod bila ada (idempoten — upsert only, kredensial dari SEED_* env)
         run: |
-          cloudflared tunnel route dns 60a8a6fd-c3e6-401c-9dde-947a0262b5f0 kamisama-v0.my.id || true
+          if [ -f prisma/seed.prod.ts ]; then
+            docker run --rm --env-file .env kamisama/kamisama-v0:${{ github.sha }} bun prisma/seed.prod.ts
+          else
+            echo "no prisma/seed.prod.ts, skip"
+          fi
+
+      - name: Register subdomain (D8 — route DNS dulu, idempotent)
+        run: |
+          HOST=$(echo "${{ vars.PRODUCTION_URL }}" | sed -e 's|https://||' -e 's|http://||' -e 's|/.*||')
+          FRONT=$((3000 + ${{ vars.LIVE_PORT }} - 5000))
+          ~/bin/kamisama-subdomain.sh "$HOST" "http://localhost:$FRONT"

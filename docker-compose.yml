@@ -1,0 +1,34 @@
+# Compose per-app — blue-green (docker-compose v1 COMPATIBLE).
+# Jangan pakai deploy.resources (diabaikan tanpa swarm) — pakai mem_limit/cpus.
+# Variabel diisi kamisama-deploy.sh saat deploy: APP, IMAGE_BLUE, IMAGE_GREEN,
+# BLUE_PORT, GREEN_PORT. Port internal container SELALU 3000 (D7).
+# nginx (host) proxy ke 127.0.0.1:<port-warna-live>, cloudflared ke nginx :FRONT.
+services:
+  blue:
+    image: ${IMAGE_BLUE:?IMAGE_BLUE belum diset}
+    container_name: ${APP:?APP belum diset}-blue
+    restart: unless-stopped
+    ports:
+      - "${BLUE_PORT:?BLUE_PORT belum diset}:3000"
+    env_file:
+      - .env
+    networks:
+      - net
+    mem_limit: 256m
+    cpus: 0.5
+  green:
+    image: ${IMAGE_GREEN:?IMAGE_GREEN belum diset}
+    container_name: ${APP:?APP belum diset}-green
+    restart: unless-stopped
+    ports:
+      - "${GREEN_PORT:?GREEN_PORT belum diset}:3000"
+    env_file:
+      - .env
+    networks:
+      - net
+    mem_limit: 256m
+    cpus: 0.5
+
+networks:
+  net:
+    name: kamisama-${APP:?APP belum diset}

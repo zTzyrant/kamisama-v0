@@ -1,6 +1,10 @@
 
 export async function GET() {
-    const hostname = 'https://kamisama-v0.my.id';
+    // Domain single source of truth = PRODUCTION_URL (dari .env / CI vars).
+    const hostname =
+        process.env.PRODUCTION_URL?.replace(/\/$/, '') ||
+        process.env.BASE_URL?.replace(/\/$/, '') ||
+        'https://v0.kamisama-v0.my.id';
 
     const modules = import.meta.glob('./**/*.{tsx,jsx}');
 
